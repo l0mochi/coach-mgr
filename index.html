@@ -17,7 +17,8 @@
                 <h2><i class="fa-solid fa-futbol"></i> CoachMgr</h2>
             </div>
             <ul class="nav-links">
-                <li class="active" data-route="matches"><i class="fa-solid fa-trophy"></i> 試合記録</li>
+                <li class="active" data-route="dashboard"><i class="fa-solid fa-chart-line"></i> ダッシュボード</li>
+                <li data-route="matches"><i class="fa-solid fa-trophy"></i> 試合記録</li>
                 <li data-route="practices"><i class="fa-solid fa-calendar-check"></i> 練習管理</li>
                 <li data-route="library"><i class="fa-solid fa-book"></i> メニュー管理</li>
                 <li data-route="players"><i class="fa-solid fa-users"></i> 選手管理</li>
@@ -42,44 +43,133 @@
     </div>
 
     <!-- Templates -->
+    <template id="tpl-dashboard">
+        <div class="dashboard-grid" style="margin-bottom: 2rem;">
+            <!-- Stats card 1: W-L-D Record -->
+            <div class="card stat-card" style="cursor: pointer;" id="dash-card-matches">
+                <div class="stat-icon"><i class="fa-solid fa-trophy"></i></div>
+                <div class="stat-info">
+                    <h3>通算成績 (勝率)</h3>
+                    <p id="dash-db-record">0勝 0敗 0分</p>
+                    <div class="progress-bar-container" title="勝率">
+                        <div class="progress-bar-fill" id="dash-db-record-bar"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Stats card 2: Practice count -->
+            <div class="card stat-card" style="cursor: pointer;" id="dash-card-practices">
+                <div class="stat-icon"><i class="fa-solid fa-calendar-check"></i></div>
+                <div class="stat-info">
+                    <h3>練習日数</h3>
+                    <p id="dash-db-practices">0回</p>
+                </div>
+            </div>
+            <!-- Stats card 3: Players count -->
+            <div class="card stat-card" style="cursor: pointer;" id="dash-card-players">
+                <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+                <div class="stat-info">
+                    <h3>登録選手数</h3>
+                    <p id="dash-db-players">0名</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-layout-row" style="display:grid; grid-template-columns: 1.2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+            <!-- Left Panel: Practice & Matches -->
+            <div style="display:flex; flex-direction:column; gap:1.5rem;">
+                
+                <!-- Section: Next Practice -->
+                <div class="card" id="dash-next-practice-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--surface-border); padding-bottom:0.5rem;">
+                        <h3 style="font-size:1.1rem; color:var(--primary); font-weight:600;"><i class="fa-solid fa-calendar-day"></i> 直近・次の練習予定</h3>
+                        <button class="btn btn-secondary" id="dash-btn-go-practices" style="padding:0.2rem 0.5rem; font-size:0.75rem;"><i class="fa-solid fa-chevron-right"></i> 練習一覧</button>
+                    </div>
+                    <div id="dash-practice-content">
+                        <!-- Injected -->
+                    </div>
+                </div>
+
+                <!-- Section: Recent Matches -->
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--surface-border); padding-bottom:0.5rem;">
+                        <h3 style="font-size:1.1rem; color:var(--primary); font-weight:600;"><i class="fa-solid fa-trophy"></i> 直近の試合結果 (最新3試合)</h3>
+                        <button class="btn btn-secondary" id="dash-btn-go-matches" style="padding:0.2rem 0.5rem; font-size:0.75rem;"><i class="fa-solid fa-chevron-right"></i> 試合一覧</button>
+                    </div>
+                    <div id="dash-matches-content" style="display:flex; flex-direction:column; gap:0.8rem;">
+                        <!-- Injected -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Panel: Players and Leaders -->
+            <div style="display:flex; flex-direction:column; gap:1.5rem;">
+                
+                <!-- Section: Top Scorers / Star Players -->
+                <div class="card" style="height:100%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--surface-border); padding-bottom:0.5rem;">
+                        <h3 style="font-size:1.1rem; color:var(--primary); font-weight:600;"><i class="fa-solid fa-star"></i> チームリーダー (スタッツ)</h3>
+                        <button class="btn btn-secondary" id="dash-btn-go-players" style="padding:0.2rem 0.5rem; font-size:0.75rem;"><i class="fa-solid fa-chevron-right"></i> 選手一覧</button>
+                    </div>
+                    
+                    <div style="display:grid; grid-template-columns:1fr; gap:1rem;">
+                        <div class="detail-box">
+                            <h4 style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0.5rem;"><i class="fa-solid fa-fire" style="color:#ef4444;"></i> 得点王 (Top 3)</h4>
+                            <ol id="dash-top-scorers" style="padding-left:1.2rem; font-size:0.9rem; line-height:1.6;">
+                                <!-- Injected -->
+                            </ol>
+                        </div>
+                        <div class="detail-box">
+                            <h4 style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0.5rem;"><span style="display:inline-block; transform:rotate(45deg); color:#22c55e;"><i class="fa-solid fa-shoe-prints"></i></span> アシスト王 (Top 3)</h4>
+                            <ol id="dash-top-assists" style="padding-left:1.2rem; font-size:0.9rem; line-height:1.6;">
+                                <!-- Injected -->
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </template>
+
     <template id="tpl-matches">
         <div class="dashboard-grid" style="margin-bottom:2rem;">
-            <div class="card stat-card" style="height:100px; display:flex; align-items:center; justify-content:flex-start; margin-bottom:0; box-sizing:border-box; padding:0.8rem 1.2rem;">
-                <div class="stat-icon" style="width:40px; height:40px; font-size:1.25rem;"><i class="fa-solid fa-trophy"></i></div>
-                <div class="stat-info" style="text-align:left; flex:1; margin-left:0.8rem;">
-                    <h3 style="font-size:0.85rem; margin-bottom:0.1rem;">通算成績</h3>
-                    <p id="dash-record" style="font-size:1.2rem; font-weight:bold;">0勝 0敗 0分</p>
-                    <div class="progress-bar-container" title="勝率" style="margin-top:0.4rem;">
+            <div class="card stat-card">
+                <div class="stat-icon"><i class="fa-solid fa-trophy"></i></div>
+                <div class="stat-info">
+                    <h3>通算成績</h3>
+                    <p id="dash-record">0勝 0敗 0分</p>
+                    <div class="progress-bar-container" title="勝率">
                         <div class="progress-bar-fill" id="dash-record-bar"></div>
                     </div>
                 </div>
             </div>
-            <div class="card stat-card" style="display:grid; grid-template-columns:1fr 1.2fr 1.2fr; gap:0.6rem; height:100px; margin-bottom:0; padding:0.5rem 1rem; box-sizing:border-box; align-items:center;">
+            <div class="card stat-grid-card">
                 <div style="display:flex; align-items:center; gap:0.6rem; width:100%; justify-content:flex-start;">
-                    <div class="stat-icon" style="margin:0; font-size:1.25rem; width:40px; height:40px; flex-shrink:0;"><i class="fa-solid fa-futbol"></i></div>
-                    <div class="stat-info" style="text-align:left; min-width:0; margin-left:0.5rem;">
+                    <div class="stat-icon"><i class="fa-solid fa-futbol"></i></div>
+                    <div class="stat-info" style="margin-left:0.5rem;">
                         <h3 style="font-size:0.8rem; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">総得点</h3>
-                        <p id="dash-goals" style="font-size:1.2rem; font-weight:bold; line-height:1.2; margin:0;">0</p>
+                        <p id="dash-goals">0</p>
                     </div>
                 </div>
-                <div style="text-align:left; border-left:1px solid var(--surface-border); padding-left:0.6rem; height:100%; display:flex; flex-direction:column; justify-content:center; min-width:0;">
-                    <div style="font-size:0.65rem; font-weight:bold; color:var(--text-secondary); margin-bottom:0.15rem; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><i class="fa-solid fa-fire" style="color:#ef4444;"></i> 得点王 (Top 3)</div>
-                    <ol id="top-scorers-list" style="margin:0; padding-left:0.9rem; font-size:0.65rem; line-height:1.2; color:var(--text-primary); text-align:left;">
+                <div class="top-scorers-column">
+                    <div class="top-scorers-title"><i class="fa-solid fa-fire" style="color:#ef4444;"></i> 得点王 (Top 3)</div>
+                    <ol id="top-scorers-list" class="top-scorers-ol">
                         <!-- Injected -->
                     </ol>
                 </div>
-                <div style="text-align:left; border-left:1px solid var(--surface-border); padding-left:0.6rem; height:100%; display:flex; flex-direction:column; justify-content:center; min-width:0;">
-                    <div style="font-size:0.65rem; font-weight:bold; color:var(--text-secondary); margin-bottom:0.15rem; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><span style="display:inline-block; transform:rotate(45deg); color:#22c55e;"><i class="fa-solid fa-shoe-prints"></i></span> アシスト王 (Top 3)</div>
-                    <ol id="top-assists-list" style="margin:0; padding-left:0.9rem; font-size:0.65rem; line-height:1.2; color:var(--text-primary); text-align:left;">
+                <div class="top-scorers-column">
+                    <div class="top-scorers-title"><span style="display:inline-block; transform:rotate(45deg); color:#22c55e;"><i class="fa-solid fa-shoe-prints"></i></span> アシスト王 (Top 3)</div>
+                    <ol id="top-assists-list" class="top-scorers-ol">
                         <!-- Injected -->
                     </ol>
                 </div>
             </div>
         </div>
-        <div class="header-actions" style="display:flex; justify-content:space-between; align-items:center;">
-            <div style="display:flex; align-items:center; gap:0.5rem; background:rgba(0,0,0,0.05); padding:0.3rem 0.5rem; border-radius:4px; border:1px solid var(--surface-border);">
+        <div class="header-actions">
+            <div class="filter-box">
                 <i class="fa-solid fa-filter" style="color:var(--text-secondary);"></i>
-                <select id="filter-nendo-match" style="background:transparent; color:var(--text-primary); border:none; outline:none; font-size:0.95rem; cursor:pointer;">
+                <select id="filter-nendo-match">
                     <option value="all">すべての年度</option>
                 </select>
             </div>
@@ -92,21 +182,21 @@
 
     <template id="tpl-practices">
         <div class="dashboard-grid" style="margin-bottom:2rem;">
-            <div class="card stat-card" style="height:100px; display:flex; align-items:center; justify-content:flex-start; margin-bottom:0; box-sizing:border-box; padding:0.8rem 1.2rem;">
-                <div class="stat-icon" style="width:40px; height:40px; font-size:1.25rem;"><i class="fa-solid fa-calendar-check"></i></div>
-                <div class="stat-info" style="text-align:left; margin-left:0.8rem;">
-                    <h3 style="font-size:0.85rem; margin-bottom:0.1rem;">練習日数</h3>
-                    <p id="dash-practices" style="font-size:1.2rem; font-weight:bold;">0</p>
+            <div class="card stat-card">
+                <div class="stat-icon"><i class="fa-solid fa-calendar-check"></i></div>
+                <div class="stat-info">
+                    <h3>練習日数</h3>
+                    <p id="dash-practices">0</p>
                 </div>
             </div>
         </div>
-        <div class="header-actions" style="display:flex; justify-content:space-between; align-items:center;">
-            <div style="display:flex; align-items:center; gap:0.5rem; background:rgba(0,0,0,0.05); padding:0.3rem 0.5rem; border-radius:4px; border:1px solid var(--surface-border);">
+        <div class="header-actions">
+            <div class="filter-box">
                 <i class="fa-solid fa-filter" style="color:var(--text-secondary);"></i>
-                <select id="filter-nendo-practice" style="background:transparent; color:var(--text-primary); border:none; outline:none; font-size:0.95rem; cursor:pointer;">
+                <select id="filter-nendo-practice">
                     <option value="all">すべての年度</option>
                 </select>
-                <select id="filter-month-practice" style="background:transparent; color:var(--text-primary); border:none; outline:none; font-size:0.95rem; cursor:pointer; margin-left:0.5rem; border-left:1px solid var(--surface-border); padding-left:0.5rem;">
+                <select id="filter-month-practice" style="margin-left:0.5rem; border-left:1px solid var(--surface-border); padding-left:0.5rem;">
                     <option value="all">すべての月</option>
                 </select>
             </div>
@@ -119,15 +209,15 @@
 
     <template id="tpl-players">
         <div class="dashboard-grid" style="margin-bottom:2rem;">
-            <div class="card stat-card" style="height:100px; display:flex; align-items:center; justify-content:flex-start; margin-bottom:0; box-sizing:border-box; padding:0.8rem 1.2rem;">
-                <div class="stat-icon" style="width:40px; height:40px; font-size:1.25rem;"><i class="fa-solid fa-users"></i></div>
-                <div class="stat-info" style="text-align:left; margin-left:0.8rem;">
-                    <h3 style="font-size:0.85rem; margin-bottom:0.1rem;">登録選手数</h3>
-                    <p id="dash-players" style="font-size:1.2rem; font-weight:bold;">0名</p>
+            <div class="card stat-card">
+                <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+                <div class="stat-info">
+                    <h3>登録選手数</h3>
+                    <p id="dash-players">0名</p>
                 </div>
             </div>
         </div>
-        <div class="header-actions" style="display:flex; justify-content:flex-end; margin-bottom:1.5rem;">
+        <div class="header-actions" style="justify-content:flex-end;">
             <button class="btn btn-primary" id="btn-add-player"><i class="fa-solid fa-user-plus"></i> 選手を追加</button>
         </div>
         <div class="dashboard-grid" id="player-grid">
@@ -137,18 +227,18 @@
 
     <template id="tpl-library">
         <div class="dashboard-grid" style="margin-bottom:2rem;">
-            <div class="card stat-card" style="height:100px; display:flex; align-items:center; justify-content:flex-start; margin-bottom:0; box-sizing:border-box; padding:0.8rem 1.2rem;">
-                <div class="stat-icon" style="width:40px; height:40px; font-size:1.25rem;"><i class="fa-solid fa-book"></i></div>
-                <div class="stat-info" style="text-align:left; margin-left:0.8rem;">
-                    <h3 style="font-size:0.85rem; margin-bottom:0.1rem;">登録メニュー数</h3>
-                    <p id="dash-library" style="font-size:1.2rem; font-weight:bold;">0個</p>
+            <div class="card stat-card">
+                <div class="stat-icon"><i class="fa-solid fa-book"></i></div>
+                <div class="stat-info">
+                    <h3>登録メニュー数</h3>
+                    <p id="dash-library">0個</p>
                 </div>
             </div>
         </div>
-        <div class="header-actions" style="display:flex; justify-content:space-between; align-items:center;">
-            <div style="display:flex; align-items:center; gap:0.5rem; background:rgba(0,0,0,0.05); padding:0.3rem 0.5rem; border-radius:4px; border:1px solid var(--surface-border);">
+        <div class="header-actions">
+            <div class="filter-box">
                 <i class="fa-solid fa-filter" style="color:var(--text-secondary);"></i>
-                <select id="filter-library-category" style="background:transparent; color:var(--text-primary); border:none; outline:none; font-size:0.95rem; cursor:pointer;">
+                <select id="filter-library-category">
                     <option value="all">すべてのカテゴリ</option>
                 </select>
             </div>
@@ -293,83 +383,103 @@
                 </div>
             </div>
 
-            <!-- Right: Compact Sidebar Toolbar (Exactly fits 500px canvas height) -->
-            <div class="canvas-toolbar" style="width:180px; display:flex; flex-direction:column; gap:0.35rem; padding:0.5rem; background:var(--surface-color); border-radius:var(--border-radius); border:1px solid var(--surface-border); box-shadow: 0 4px 6px rgba(0,0,0,0.1); height:500px; justify-content:space-between; box-sizing:border-box; flex-wrap:nowrap; flex:none;">
+            <!-- Right: Structured Sidebar Toolbar -->
+            <div class="canvas-toolbar">
                 
                 <!-- Section 1: Navigation & Save (Top Actions) -->
-                <div style="display:flex; flex-direction:column; gap:0.25rem; flex-shrink:0;">
+                <div class="canvas-toolbar-section">
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.25rem;">
                         <button class="btn btn-secondary" id="anim-back" style="padding:0.25rem; font-size:0.7rem; justify-content:center;" title="編集を終了して一覧に戻る"><i class="fa-solid fa-arrow-left"></i> 戻る</button>
                         <button class="btn btn-primary" id="anim-save" style="padding:0.25rem; font-size:0.7rem; justify-content:center;" title="作図を保存"><i class="fa-solid fa-save"></i> 保存</button>
                     </div>
                 </div>
 
-                <!-- Section 2: Number Settings -->
-                <div style="background:rgba(0,0,0,0.05); padding:0.25rem 0.3rem; border-radius:4px; border:1px solid var(--surface-border); display:flex; align-items:center; gap:0.25rem; flex-shrink:0;">
-                    <label for="canvas-player-number" style="font-size:0.7rem; color:var(--text-secondary); margin:0; white-space:nowrap;">背番号:</label>
-                    <input type="text" id="canvas-player-number" value="1" maxlength="3" style="width:32px; padding:0.1rem; text-align:center; background:#ffffff; border:1px solid var(--surface-border); color:var(--text-primary); border-radius:3px; font-weight:bold; font-size:0.75rem; height:20px; box-sizing:border-box;">
-                    <select id="canvas-player-select" class="form-control hidden" style="flex:1; padding:0.1rem; font-size:0.7rem; border:1px solid var(--surface-border); border-radius:3px; height:20px;">
-                        <!-- Populated dynamically -->
-                    </select>
-                </div>
-
-                <!-- Section 3: Drawing Tools Grid (Compact) -->
-                <div style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:0.25rem;">
-                    <h5 style="font-size:0.65rem; color:var(--primary); margin:0; font-weight:600;"><i class="fa-solid fa-toolbox"></i> 描画ツール</h5>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.2rem;">
-                        <button class="btn btn-secondary tool-btn active" data-tool="select" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選択"><i class="fa-solid fa-hand-pointer"></i> 選択</button>
-                        <button class="btn btn-secondary tool-btn" data-tool="text" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="文字"><i class="fa-solid fa-font"></i> 文字</button>
-                        
-                        <button class="btn btn-secondary tool-btn" data-tool="red" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選手(赤)"><i class="fa-solid fa-circle" style="color:#f23932;"></i> 赤</button>
-                        <button class="btn btn-secondary tool-btn" data-tool="blue" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選手(青)"><i class="fa-solid fa-circle" style="color:#3d79d5;"></i> 青</button>
-                        <button class="btn btn-secondary tool-btn" data-tool="green" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選手(緑)"><i class="fa-solid fa-circle" style="color:#63a84d;"></i> 緑</button>
-                        <button class="btn btn-secondary tool-btn" data-tool="orange" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選手(橙)"><i class="fa-solid fa-circle" style="color:#f09f4d;"></i> 橙</button>
-                        
-                        <button class="btn btn-secondary tool-btn" data-tool="ball" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="ボール"><i class="fa-solid fa-futbol"></i> ボール</button>
-                        <button class="btn btn-secondary tool-btn" data-tool="marker" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="マーカー"><i class="fa-solid fa-circle" style="color:#f97316;"></i> マーク</button>
-                        <button class="btn btn-secondary tool-btn" data-tool="cone" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="コーン"><i class="fa-solid fa-caret-up" style="color:#facc15;"></i> コーン</button>
-                        <button class="btn btn-secondary tool-btn" data-tool="ladder" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="ラダー"><i class="fa-solid fa-bars" style="transform: rotate(90deg); display: inline-block;"></i> ラダー</button>
-                        
-                        <button class="btn btn-secondary tool-btn" data-tool="minigoal" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="ミニゴール"><span style="display:inline-block; width:10px; height:6px; border:2px solid #fff; border-bottom:none; vertical-align:middle; margin-right:2px;"></span> ゴール</button>
-                        <button class="btn btn-secondary tool-btn" data-tool="line-rect" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="四角枠"><i class="fa-regular fa-square" style="border: 1.5px dashed #cbd5e1; width: 10px; height: 10px; display: inline-block; vertical-align: middle;"></i> 四角</button>
-                        
-                        <button class="btn btn-secondary tool-btn" data-tool="line-move" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="移動(人)"><i class="fa-solid fa-arrow-right"></i> 移動</button>
-                        <button class="btn btn-secondary tool-btn" data-tool="line-pass" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="パス"><i class="fa-solid fa-arrow-right-long" style="opacity:0.8;"></i> パス</button>
-                        <button class="btn btn-secondary tool-btn" data-tool="line-dribble" style="padding:0.2rem; font-size:0.7rem; justify-content:center; grid-column: span 2;" title="ドリブル"><i class="fa-solid fa-water"></i> ドリブル</button>
+                <!-- Section 2: Player Selection / Numbers -->
+                <div class="canvas-toolbar-section" style="background:rgba(0,0,0,0.03); padding:0.25rem; border-radius:6px;">
+                    <div style="display:flex; align-items:center; gap:0.25rem; width:100%;">
+                        <label for="canvas-player-number" style="font-size:0.7rem; color:var(--text-secondary); margin:0; white-space:nowrap;">背番号:</label>
+                        <input type="text" id="canvas-player-number" value="1" maxlength="3" style="width:36px; padding:0.1rem; text-align:center; background:#ffffff; border:1px solid var(--surface-border); color:var(--text-primary); border-radius:3px; font-weight:bold; font-size:0.75rem; height:20px; box-sizing:border-box;">
+                        <select id="canvas-player-select" class="form-control hidden" style="flex:1; padding:0.1rem; font-size:0.7rem; border:1px solid var(--surface-border); border-radius:3px; height:20px;">
+                            <!-- Populated dynamically -->
+                        </select>
                     </div>
                 </div>
 
-                <!-- Section 4: Pitch Select & Grid Snap Options -->
-                <div style="background:rgba(0,0,0,0.03); padding:0.25rem 0.3rem; border-radius:4px; border:1px solid var(--surface-border); display:flex; flex-direction:column; gap:0.25rem; flex-shrink:0;">
-                    <select id="canvas-pitch-template" class="form-control" style="width:100%; padding:0.15rem; font-size:0.7rem; border:1px solid var(--surface-border); border-radius:3px; height:22px; background:#ffffff; color:var(--text-primary);">
-                        <option value="full">フルコート</option>
-                        <option value="half">ハーフコート(上)</option>
-                        <option value="half-bottom">ハーフコート(下)</option>
-                        <option value="blank">ブランク（白地）</option>
-                    </select>
-                    <label style="font-size:0.7rem; display:flex; align-items:center; gap:0.2rem; color:var(--text-secondary); cursor:pointer; margin:0; flex-shrink:0;">
-                        <input type="checkbox" id="canvas-snap-grid" checked>
-                        <span>グリッド吸着</span>
-                    </label>
-                </div>
+                <!-- Scrollable sections container to prevent any overflow issues -->
+                <div style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:0.35rem; padding-right:2px;">
+                    
+                    <!-- Section 3: Player Placement -->
+                    <div class="canvas-toolbar-section">
+                        <div class="canvas-toolbar-section-title"><i class="fa-solid fa-users"></i> 選手配置</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.2rem;">
+                            <button class="btn btn-secondary tool-btn active" data-tool="select" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選択"><i class="fa-solid fa-hand-pointer"></i> 選択</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="text" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="文字"><i class="fa-solid fa-font"></i> 文字</button>
+                            
+                            <button class="btn btn-secondary tool-btn" data-tool="red" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選手(自チーム)"><i class="fa-solid fa-circle" style="color:#f23932;"></i> 自チーム</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="blue" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選手(相手チーム)"><i class="fa-solid fa-circle" style="color:#3d79d5;"></i> 相手</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="green" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選手(GK/控え)"><i class="fa-solid fa-circle" style="color:#63a84d;"></i> GK/控え</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="orange" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選手(フリーマン)"><i class="fa-solid fa-circle" style="color:#f09f4d;"></i> フリーマン</button>
+                        </div>
+                    </div>
 
-                <!-- Section 5: Animation Controller Actions -->
-                <div style="background:rgba(0,0,0,0.03); padding:0.25rem 0.3rem; border-radius:4px; border:1px solid var(--surface-border); display:flex; flex-direction:column; gap:0.25rem; flex-shrink:0;">
-                    <div style="font-size:0.65rem; color:var(--text-secondary); font-weight:bold;"><i class="fa-solid fa-film"></i> アニメーション</div>
-                    <button class="btn btn-primary" id="anim-add-frame" style="padding:0.25rem; font-size:0.7rem; width:100%; justify-content:center;" title="シーンを記録"><i class="fa-solid fa-plus"></i> 追加 <span id="frame-count" class="badge" style="padding:1px 4px; font-size:0.65rem;">0</span></button>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.25rem;">
-                        <button class="btn btn-primary" id="anim-play" style="background:#10b981; padding:0.25rem; font-size:0.7rem; justify-content:center;" title="アニメーション再生"><i class="fa-solid fa-play"></i> 再生</button>
-                        <button class="btn btn-secondary" id="anim-stop" style="padding:0.25rem; font-size:0.7rem; justify-content:center;" title="停止"><i class="fa-solid fa-stop"></i> 停止</button>
+                    <!-- Section 4: Equipment / Target Placement -->
+                    <div class="canvas-toolbar-section">
+                        <div class="canvas-toolbar-section-title"><i class="fa-solid fa-toolbox"></i> 器具配置</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.2rem;">
+                            <button class="btn btn-secondary tool-btn" data-tool="ball" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="ボール"><i class="fa-solid fa-futbol"></i> ボール</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="marker" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="マーカー"><i class="fa-solid fa-circle" style="color:#f97316;"></i> マーク</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="cone" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="コーン"><i class="fa-solid fa-caret-up" style="color:#facc15;"></i> コーン</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="ladder" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="ラダー"><i class="fa-solid fa-bars" style="transform: rotate(90deg); display: inline-block;"></i> ラダー</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="minigoal" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="ミニゴール"><span style="display:inline-block; width:10px; height:6px; border:2px solid #fff; border-bottom:none; vertical-align:middle; margin-right:2px;"></span> ゴール</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="line-rect" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="四角枠"><i class="fa-regular fa-square" style="border: 1.5px dashed #cbd5e1; width: 10px; height: 10px; display: inline-block; vertical-align: middle;"></i> 四角</button>
+                        </div>
+                    </div>
+
+                    <!-- Section 5: Tactical Lines -->
+                    <div class="canvas-toolbar-section">
+                        <div class="canvas-toolbar-section-title"><i class="fa-solid fa-signature"></i> ライン描画</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.2rem;">
+                            <button class="btn btn-secondary tool-btn" data-tool="line-move" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="移動(人)"><i class="fa-solid fa-arrow-right"></i> 移動</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="line-pass" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="パス"><i class="fa-solid fa-arrow-right-long" style="opacity:0.8;"></i> パス</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="line-dribble" style="padding:0.2rem; font-size:0.7rem; justify-content:center; grid-column: span 2;" title="ドリブル"><i class="fa-solid fa-water"></i> ドリブル</button>
+                        </div>
+                    </div>
+
+                    <!-- Section 6: Pitch Layout Options -->
+                    <div class="canvas-toolbar-section">
+                        <div class="canvas-toolbar-section-title"><i class="fa-solid fa-soccer-ball"></i> ピッチ設定</div>
+                        <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                            <select id="canvas-pitch-template" class="form-control" style="width:100%; padding:0.15rem; font-size:0.7rem; border:1px solid var(--surface-border); border-radius:3px; height:22px; background:#ffffff; color:var(--text-primary);">
+                                <option value="full">フルコート</option>
+                                <option value="half">ハーフコート(上)</option>
+                                <option value="half-bottom">ハーフコート(下)</option>
+                                <option value="blank">ブランク（白地）</option>
+                            </select>
+                            <label style="font-size:0.7rem; display:flex; align-items:center; gap:0.2rem; color:var(--text-secondary); cursor:pointer; margin:0;">
+                                <input type="checkbox" id="canvas-snap-grid" checked>
+                                <span>グリッド吸着</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Section 7: Animation Controller -->
+                    <div class="canvas-toolbar-section">
+                        <div class="canvas-toolbar-section-title"><i class="fa-solid fa-film"></i> アニメーション</div>
+                        <button class="btn btn-primary" id="anim-add-frame" style="padding:0.25rem; font-size:0.7rem; width:100%; justify-content:center;" title="シーンを記録"><i class="fa-solid fa-plus"></i> 追加 <span id="frame-count" class="badge" style="padding:1px 4px; font-size:0.65rem;">0</span></button>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.25rem; margin-top:0.15rem;">
+                            <button class="btn btn-primary" id="anim-play" style="background:#10b981; padding:0.25rem; font-size:0.7rem; justify-content:center;" title="アニメーション再生"><i class="fa-solid fa-play"></i> 再生</button>
+                            <button class="btn btn-secondary" id="anim-stop" style="padding:0.25rem; font-size:0.7rem; justify-content:center;" title="停止"><i class="fa-solid fa-stop"></i> 停止</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Section 6: Canvas Global Actions (Undo, Clear, Delete) -->
-                <div style="display:flex; flex-direction:column; gap:0.25rem; flex-shrink:0;">
+                <!-- Section 8: Global Tools (Always at the bottom) -->
+                <div class="canvas-toolbar-section" style="border-top:1.5px solid var(--surface-border); border-bottom:none; padding-top:0.35rem; padding-bottom:0; margin-bottom:0;">
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.25rem;">
                         <button class="btn btn-secondary" id="tool-undo" style="padding:0.25rem; font-size:0.7rem; justify-content:center;" title="元に戻す (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i> 戻す</button>
                         <button class="btn btn-danger" id="tool-clear" style="padding:0.25rem; font-size:0.7rem; justify-content:center;" title="すべて消去"><i class="fa-solid fa-trash"></i> 消去</button>
                     </div>
-                    <button class="btn btn-secondary" id="tool-rotate" style="display:none; padding:0.25rem; font-size:0.7rem; justify-content:center; width:100%;" title="回転"><i class="fa-solid fa-rotate-right"></i> 回転</button>
+                    <button class="btn btn-secondary" id="tool-rotate" style="display:none; padding:0.25rem; font-size:0.7rem; justify-content:center; width:100%; margin-top:0.2rem;" title="回転"><i class="fa-solid fa-rotate-right"></i> 回転</button>
                     <div id="sidebar-action-container" style="display:none; width:100%; flex-shrink:0; margin-top:0.2rem;">
                         <button class="btn btn-danger" id="tool-delete" style="justify-content:center; padding:0.25rem; font-size:0.7rem; width:100%;" title="選択オブジェクトを削除"><i class="fa-solid fa-trash-can"></i> 選択削除</button>
                     </div>
@@ -538,15 +648,18 @@
     <!-- Practice Form Modal -->
     <div id="modal-practice" class="modal-overlay hidden">
         <div class="modal">
-            <h2 style="margin-bottom:1.5rem;">練習日を追加</h2>
+            <h2 id="practice-modal-title" style="margin-bottom:1.5rem;">練習日を追加</h2>
             <form id="form-practice">
+                <input type="hidden" id="practice-edit-id">
                 <div class="form-group">
                     <label>日付</label>
                     <input type="date" id="practice-date" class="form-control" required>
                 </div>
-                <div class="form-group">
-                    <label>出席人数</label>
-                    <input type="text" id="practice-attendance" class="form-control" placeholder="例: 20/22" required>
+                 <div class="form-group">
+                    <label>選手出欠（名簿）</label>
+                    <div id="practice-attendance-roster" style="max-height: 180px; overflow-y: auto; background: rgba(0,0,0,0.03); border: 1px solid var(--surface-border); border-radius: 12px; padding: 0.8rem 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <!-- Checkboxes populated dynamically -->
+                    </div>
                 </div>
                 <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:2rem;">
                     <button type="button" class="btn btn-secondary btn-close-modal">キャンセル</button>
@@ -620,7 +733,7 @@
                 </div>
                 <div class="form-group">
                     <label>ポジション（複数選択可）</label>
-                    <div id="player-position-container" style="display:flex; gap:1rem; flex-wrap:wrap; background:rgba(0,0,0,0.05); padding:0.8rem; border-radius:6px; border:1px solid var(--surface-border);">
+                    <div id="player-position-container" class="checkbox-group-container">
                         <!-- Checkboxes populated dynamically -->
                     </div>
                 </div>
@@ -650,15 +763,15 @@
     <!-- Player Detail View Modal -->
     <div id="modal-player-detail" class="modal-overlay hidden">
         <div class="modal" style="max-width: 800px; width: 90%;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; border-bottom:1px solid var(--surface-border); padding-bottom:1rem;">
-                <div style="display:flex; align-items:center; gap:1rem;">
+            <div class="modal-header-detail">
+                <div class="modal-header-detail-left">
                     <div id="pd-number" class="player-number">10</div>
                     <div>
                         <div id="pd-position" class="player-position" style="display:inline-block; margin-bottom:0.2rem;">FW</div>
                         <h2 id="pd-name" style="margin:0;">山田 太郎</h2>
-                        <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.3rem; display:flex; gap:1rem;">
-                            <span><i class="fa-solid fa-futbol" style="color:var(--primary);"></i> 得点: <strong id="pd-goals" style="color:var(--text-primary);">0</strong></span>
-                            <span><span style="display:inline-block; transform:rotate(45deg); color:#22c55e;"><i class="fa-solid fa-shoe-prints"></i></span> アシスト: <strong id="pd-assists" style="color:var(--text-primary);">0</strong></span>
+                        <div class="modal-header-detail-meta">
+                            <span id="btn-pd-goals" style="cursor:pointer; text-decoration:underline; display:inline-flex; align-items:center; gap:0.25rem;"><i class="fa-solid fa-futbol" style="color:var(--primary);"></i> 得点: <strong id="pd-goals" style="color:var(--primary);">0</strong></span>
+                            <span id="btn-pd-assists" style="cursor:pointer; text-decoration:underline; display:inline-flex; align-items:center; gap:0.25rem; margin-left:0.5rem;"><span style="display:inline-block; transform:rotate(45deg); color:#22c55e;"><i class="fa-solid fa-shoe-prints"></i></span> アシスト: <strong id="pd-assists" style="color:var(--primary);">0</strong></span>
                         </div>
                     </div>
                 </div>
@@ -668,19 +781,19 @@
                 </div>
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem;">
+            <div class="modal-layout-grid-2">
                 <div>
                     <h3 style="margin-bottom:1rem;"><i class="fa-solid fa-chart-pie"></i> 最新のスキル</h3>
                     <div class="radar-container" style="margin: 0 auto; position: relative;">
                         <canvas id="pd-radar" width="200" height="200"></canvas>
-                        <div id="pd-radar-legend" style="text-align: center; font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem; display: flex; justify-content: center; gap: 1rem;">
-                            <span><span style="display:inline-block; width:10px; height:10px; background:rgba(242,57,50,0.5); border:1px solid #f23932; margin-right:4px;"></span>最新</span>
-                            <span><span style="display:inline-block; width:10px; height:10px; background:rgba(148,163,184,0.2); border:1px dashed #64748b; margin-right:4px;"></span>前回</span>
-                        </div>
                     </div>
-                    <div style="background: rgba(0,0,0,0.03); padding: 0.8rem; border-radius: 6px; margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary);">
-                        <strong style="display:block; margin-bottom:0.4rem; color:var(--text-primary);">評価指標 (1〜5)</strong>
-                        <ul style="padding-left:1.2rem; margin:0; line-height:1.4;">
+                    <div id="pd-radar-legend" style="text-align: center; font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem; display: flex; justify-content: center; gap: 1rem; margin-bottom: 0.5rem;">
+                        <span><span style="display:inline-block; width:10px; height:10px; background:rgba(242,57,50,0.5); border:1px solid #f23932; margin-right:4px;"></span>最新</span>
+                        <span><span style="display:inline-block; width:10px; height:10px; background:rgba(148,163,184,0.2); border:1px dashed #64748b; margin-right:4px;"></span>前回</span>
+                    </div>
+                    <details class="info-callout" style="background:rgba(0,0,0,0.02); border:1px solid var(--surface-border); border-radius:8px; padding:0.6rem; margin-top:0.75rem; font-size:0.8rem; cursor:pointer;">
+                        <summary style="font-weight:bold; color:var(--text-secondary); outline:none;"><i class="fa-solid fa-circle-question"></i> 評価指標の説明 (1〜5)</summary>
+                        <ul style="margin-top:0.5rem; padding-left:1.2rem; list-style-type:disc; color:var(--text-secondary); line-height:1.5;">
                             <li><strong>シュート</strong>: 決定力、キック精度・威力</li>
                             <li><strong>パス</strong>: 短長パス精度、展開力、視野</li>
                             <li><strong>ドリブル</strong>: ボールキープ、突破力、敏捷性</li>
@@ -688,7 +801,7 @@
                             <li><strong>フィジカル</strong>: スピード、スタミナ、競り合い</li>
                             <li><strong>メンタル</strong>: 闘争心、コーチング、集中力</li>
                         </ul>
-                    </div>
+                    </details>
                     <button class="btn btn-primary" id="btn-add-assessment" style="width:100%; margin-top:1rem;"><i class="fa-solid fa-plus"></i> 新しい評価を記録</button>
                 </div>
                 <div>
@@ -752,6 +865,36 @@
 
     <!-- Toast Notification -->
     <div id="toast-container" class="toast-container"></div>
+
+    <!-- Library Assign Modal -->
+    <div id="modal-assign-practice" class="modal-overlay hidden" style="z-index: 1001;">
+        <div class="modal" style="max-width: 450px;">
+            <h2 style="margin-bottom:1.5rem;"><i class="fa-solid fa-calendar-plus"></i> 練習日にアサイン</h2>
+            <input type="hidden" id="assign-menu-id">
+            <p class="text-secondary" style="font-size:0.85rem; margin-bottom:1rem;">アサイン先の練習日を選択してください：</p>
+            <div id="assign-practices-list" style="display:flex; flex-direction:column; gap:0.5rem; max-height:250px; overflow-y:auto; margin-bottom:1.5rem;">
+                <!-- Populated dynamically -->
+            </div>
+            <div style="display:flex; justify-content:space-between; gap:1rem; margin-top:2rem;">
+                <button type="button" class="btn btn-secondary" id="btn-assign-add-practice" style="font-size:0.85rem;"><i class="fa-solid fa-plus"></i> 新しい練習日を追加</button>
+                <button type="button" class="btn btn-secondary btn-close-modal">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Match List Popup Modal -->
+    <div id="modal-player-matches-list" class="modal-overlay hidden" style="z-index: 1002;">
+        <div class="modal" style="max-width: 400px;">
+            <button class="btn-close-modal" onclick="document.getElementById('modal-player-matches-list').classList.add('hidden')" style="position:absolute; top:1rem; right:1rem; background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-secondary);">&times;</button>
+            <h2 id="pml-title" style="margin-bottom:1.2rem; font-size:1.15rem; color:var(--primary);"></h2>
+            <div id="pml-content" style="display:flex; flex-direction:column; gap:0.6rem; max-height:250px; overflow-y:auto;">
+                <!-- list of matches -->
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:1.5rem;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-player-matches-list').classList.add('hidden')">閉じる</button>
+            </div>
+        </div>
+    </div>
 
     <!-- JSON Export Fallback Modal (for iOS / file:// environments) -->
     <div id="modal-export-fallback" class="modal-overlay hidden">

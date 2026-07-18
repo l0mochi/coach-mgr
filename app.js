@@ -25,7 +25,7 @@ let state = {
     skillMetrics: ['シュート', 'パス', 'ドリブル', '守備', 'フィジカル', 'メンタル'],
     positions: ['FW', 'MF', 'DF', 'GK'],
     teamInfo: { name: 'My Team', color: '#f23932' },
-    currentRoute: 'matches'
+    currentRoute: 'dashboard'
 };
 
 let currentMatchNendo = 'all';
@@ -184,7 +184,7 @@ function init() {
     if(sidebarTitle) sidebarTitle.innerHTML = `<i class="fa-solid fa-futbol"></i> ${state.teamInfo.name}`;
     setupEventListeners();
     setupModals();
-    navigate('matches');
+    navigate('dashboard');
 }
 
 // UI Helpers
@@ -245,6 +245,7 @@ function navigate(route, params = null) {
         viewContainer.innerHTML = '';
         viewContainer.appendChild(template.content.cloneNode(true));
         
+        if (route === 'dashboard') initDashboard();
         if (route === 'matches') initMatches();
         if (route === 'practices') initPractices();
         if (route === 'players') initPlayers();
@@ -417,18 +418,38 @@ function setupModals() {
 
     document.getElementById('form-practice').addEventListener('submit', (e) => {
         e.preventDefault();
-        const newPractice = {
-            id: Date.now(),
-            date: document.getElementById('practice-date').value,
-            attendance: document.getElementById('practice-attendance').value,
-            menus: []
-        };
-        state.practices.unshift(newPractice);
+        const editId = document.getElementById('practice-edit-id').value;
+        
+        // Collect checked players
+        const checkedBoxes = document.querySelectorAll('#practice-attendance-roster input[type="checkbox"]:checked');
+        const presentIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+        const attendanceStr = `${presentIds.length}/${state.players.length}`;
+
+        if (editId) {
+            const practice = state.practices.find(p => p.id === parseInt(editId));
+            if (practice) {
+                practice.date = document.getElementById('practice-date').value;
+                practice.attendance = attendanceStr;
+                practice.presentPlayerIds = presentIds;
+                showToast('練習日情報を更新しました');
+            }
+        } else {
+            const newPractice = {
+                id: Date.now(),
+                date: document.getElementById('practice-date').value,
+                attendance: attendanceStr,
+                presentPlayerIds: presentIds,
+                menus: []
+            };
+            state.practices.unshift(newPractice);
+            showToast('練習日を記録しました');
+        }
+        
         saveData();
-        showToast('練習日を記録しました');
         document.getElementById('modal-practice').classList.add('hidden');
         navigate('practices');
         e.target.reset();
+        document.getElementById('practice-edit-id').value = '';
     });
 
     // Populate Library Select when changed
@@ -752,6 +773,193 @@ function openModal(id) {
     document.getElementById(id).classList.remove('hidden');
 }
 
+function initDashboard() {
+    // 1. Calculate overall stats
+    let wins = 0, losses = 0, draws = 0;
+    state.matches.forEach(m => {
+        const [us, them] = m.result.split('-').map(Number);
+        if (us > them) wins++;
+        else if (us < them) losses++;
+        else draws++;
+    });
+    
+    const dbRecord = document.getElementById('dash-db-record');
+    const dbRecordBar = document.getElementById('dash-db-record-bar');
+    const winRate = (wins + losses + draws) > 0 ? Math.round((wins / (wins + losses + draws)) * 100) : 0;
+    
+    if (dbRecord) dbRecord.innerHTML = `${wins}勝 ${losses}敗 ${draws}分 <span style="font-size:0.75rem; font-weight:normal; color:var(--text-secondary); margin-left:0.25rem;">(勝率:${winRate}%)</span>`;
+    if (dbRecordBar) dbRecordBar.style.width = `${winRate}%`;
+
+    // 2. Set count cards
+    const dbPractices = document.getElementById('dash-db-practices');
+    if (dbPractices) dbPractices.textContent = `${state.practices.length}回`;
+
+    const dbPlayers = document.getElementById('dash-db-players');
+    if (dbPlayers) dbPlayers.textContent = `${state.players.length}名`;
+
+    // Click handlers for stats cards to jump to corresponding views
+    const cardMatches = document.getElementById('dash-card-matches');
+    if (cardMatches) cardMatches.onclick = () => navigate('matches');
+    
+    const cardPractices = document.getElementById('dash-card-practices');
+    if (cardPractices) cardPractices.onclick = () => navigate('practices');
+    
+    const cardPlayers = document.getElementById('dash-card-players');
+    if (cardPlayers) cardPlayers.onclick = () => navigate('players');
+
+    // Button navigations
+    const btnGoPractices = document.getElementById('dash-btn-go-practices');
+    if (btnGoPractices) btnGoPractices.onclick = () => navigate('practices');
+
+    const btnGoMatches = document.getElementById('dash-btn-go-matches');
+    if (btnGoMatches) btnGoMatches.onclick = () => navigate('matches');
+
+    const btnGoPlayers = document.getElementById('dash-btn-go-players');
+    if (btnGoPlayers) btnGoPlayers.onclick = () => navigate('players');
+
+    // 3. Render next/most recent practice
+    const practiceContent = document.getElementById('dash-practice-content');
+    if (practiceContent) {
+        if (state.practices.length > 0) {
+            // Sort practices by date descending to find the latest
+            const sortedPractices = [...state.practices].sort((a,b) => new Date(b.date) - new Date(a.date));
+            const p = sortedPractices[0];
+            
+            let menusHtml = p.menus && p.menus.length > 0 ? p.menus.map(menu => `
+                <li class="practice-menu-item" style="margin-bottom: 0.35rem; padding: 0.6rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:bold; color:var(--primary); font-size:0.9rem;">${menu.focus}</span>
+                        <button class="btn btn-secondary btn-dash-anim-practice" data-pid="${p.id}" data-mid="${menu.id}" style="padding:0.2rem 0.4rem; font-size:0.75rem;"><i class="fa-solid fa-person-running"></i> 作図</button>
+                    </div>
+                    ${menu.organize ? `<div style="font-size:0.8rem; color:var(--text-secondary); margin-top:0.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><strong>オーガナイズ:</strong> ${menu.organize.split('\n')[0]}</div>` : ''}
+                </li>
+            `).join('') : '<li class="text-secondary" style="font-style:italic; padding:0.5rem 0; list-style:none;">メニュー登録なし</li>';
+            
+            practiceContent.innerHTML = `
+                <div style="background:rgba(0,0,0,0.02); border:1px solid var(--surface-border); border-radius:12px; padding:1rem; box-sizing:border-box;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                        <div style="font-size:1.15rem; font-weight:bold;"><i class="fa-regular fa-calendar"></i> ${p.date}</div>
+                        <div class="text-secondary" style="font-size:0.85rem;"><i class="fa-solid fa-users"></i> 出席: ${p.attendance}</div>
+                    </div>
+                    <ul class="practice-card-menu-list" style="max-height: 200px;">
+                        ${menusHtml}
+                    </ul>
+                </div>
+            `;
+            
+            // Add click handlers for menu diagrams
+            document.querySelectorAll('.btn-dash-anim-practice').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const pid = parseInt(e.currentTarget.dataset.pid);
+                    const mid = parseInt(e.currentTarget.dataset.mid);
+                    navigate('animation', { practiceId: pid, menuId: mid });
+                };
+            });
+        } else {
+            practiceContent.innerHTML = `
+                <div class="text-secondary" style="text-align:center; padding:1.5rem; background:rgba(0,0,0,0.02); border-radius:12px; border:1px dashed var(--surface-border);">
+                    練習予定・記録がありません。<br>
+                    <button class="btn btn-primary" id="dash-btn-add-first-practice" style="margin-top:0.8rem; font-size:0.8rem; padding:0.4rem 0.8rem;"><i class="fa-solid fa-plus"></i> 最初の練習日を追加</button>
+                </div>
+            `;
+            const btnAddFirst = document.getElementById('dash-btn-add-first-practice');
+            if (btnAddFirst) {
+                btnAddFirst.onclick = () => {
+                    navigate('practices');
+                    setTimeout(() => {
+                        const btnAdd = document.getElementById('btn-add-practice');
+                        if (btnAdd) btnAdd.click();
+                    }, 50);
+                };
+            }
+        }
+    }
+
+    // 4. Render recent matches (latest 3)
+    const matchesContent = document.getElementById('dash-matches-content');
+    if (matchesContent) {
+        if (state.matches.length > 0) {
+            const sortedMatches = [...state.matches].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
+            matchesContent.innerHTML = sortedMatches.map(m => {
+                const [us, them] = m.result.split('-').map(Number);
+                let badgeClass = 'badge-sub';
+                let resultLabel = 'D';
+                if (us > them) { badgeClass = 'badge-fw'; resultLabel = 'W'; }
+                else if (us < them) { badgeClass = 'badge-df'; resultLabel = 'L'; }
+                
+                return `
+                    <div class="feedback-box" style="display:flex; justify-content:space-between; align-items:center; padding:0.6rem 0.8rem; cursor:pointer;" onclick="openMatchDetail(${m.id})">
+                        <div style="display:flex; align-items:center; gap:0.6rem;">
+                            <span class="player-position ${badgeClass}" style="width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-size:0.75rem; font-weight:bold; padding:0;">${resultLabel}</span>
+                            <div>
+                                <strong style="font-size:0.9rem;">vs ${m.opponent}</strong>
+                                <div style="font-size:0.75rem; color:var(--text-secondary);"><i class="fa-regular fa-calendar"></i> ${m.date} | ${m.type}</div>
+                            </div>
+                        </div>
+                        <div style="font-size:1.1rem; font-weight:bold; color:var(--primary);">${m.result}</div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            matchesContent.innerHTML = `
+                <div class="text-secondary" style="text-align:center; padding:1.5rem; background:rgba(0,0,0,0.02); border-radius:12px; border:1px dashed var(--surface-border);">
+                    試合記録がありません。<br>
+                    <button class="btn btn-primary" id="dash-btn-add-first-match" style="margin-top:0.8rem; font-size:0.8rem; padding:0.4rem 0.8rem;"><i class="fa-solid fa-plus"></i> 最初の試合を記録</button>
+                </div>
+            `;
+            const btnAddFirst = document.getElementById('dash-btn-add-first-match');
+            if (btnAddFirst) {
+                btnAddFirst.onclick = () => {
+                    navigate('matches');
+                    setTimeout(() => {
+                        const btnAdd = document.getElementById('btn-add-match');
+                        if (btnAdd) btnAdd.click();
+                    }, 50);
+                };
+            }
+        }
+    }
+
+    // 5. Render Top Scorers and Assists lists (Top 3)
+    const scorerCounts = {};
+    const assistCounts = {};
+    state.matches.forEach(m => {
+        if (m.goalRecords) {
+            m.goalRecords.forEach(r => {
+                if (r.scorerId) scorerCounts[r.scorerId] = (scorerCounts[r.scorerId] || 0) + 1;
+                if (r.assistId) assistCounts[r.assistId] = (assistCounts[r.assistId] || 0) + 1;
+            });
+        }
+    });
+
+    const topScorers = Object.entries(scorerCounts)
+        .map(([id, count]) => ({ p: state.players.find(pl => pl.id === parseInt(id)), count }))
+        .filter(x => x.p)
+        .sort((a,b) => b.count - a.count || (parseInt(a.p.number) - parseInt(b.p.number)))
+        .slice(0, 3);
+
+    const topAssists = Object.entries(assistCounts)
+        .map(([id, count]) => ({ p: state.players.find(pl => pl.id === parseInt(id)), count }))
+        .filter(x => x.p)
+        .sort((a,b) => b.count - a.count || (parseInt(a.p.number) - parseInt(b.p.number)))
+        .slice(0, 3);
+
+    const elTopScorers = document.getElementById('dash-top-scorers');
+    if(elTopScorers) {
+        elTopScorers.innerHTML = topScorers.length > 0 
+            ? topScorers.map(item => `<li style="margin-bottom:0.25rem; cursor:pointer;" onclick="openPlayerDetail(${item.p.id})"><strong>${item.p.number} ${item.p.name}</strong> (${item.count}得点)</li>`).join('')
+            : '<div style="color:var(--text-secondary); font-size:0.85rem; padding:0.5rem 0;">得点記録がありません。</div>';
+    }
+
+    const elTopAssists = document.getElementById('dash-top-assists');
+    if(elTopAssists) {
+        elTopAssists.innerHTML = topAssists.length > 0 
+            ? topAssists.map(item => `<li style="margin-bottom:0.25rem; cursor:pointer;" onclick="openPlayerDetail(${item.p.id})"><strong>${item.p.number} ${item.p.name}</strong> (${item.count}アシスト)</li>`).join('')
+            : '<div style="color:var(--text-secondary); font-size:0.85rem; padding:0.5rem 0;">アシスト記録がありません。</div>';
+    }
+}
+
 // View Initializers
 function initMatches() {
     // Nendo Filter Setup
@@ -853,26 +1061,26 @@ function initMatches() {
         let html = '';
         sortedMonths.forEach(month => {
             html += `
-                <div style="margin-bottom: 2rem;">
-                    <h3 style="margin-bottom: 1rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; display:inline-block;">${month}</h3>
+                <div class="month-section">
+                    <h3>${month}</h3>
                     <div class="library-grid">
             `;
             grouped[month].forEach(m => {
                 html += `
-                    <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between; height:100%; padding: 1.2rem;">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.8rem; gap:0.5rem;">
+                    <div class="card match-card">
+                        <div class="match-card-header">
                             <div>
-                                <div class="text-secondary" style="font-size:0.8rem;"><i class="fa-regular fa-calendar"></i> ${m.date} | ${m.type}</div>
-                                <div style="font-size:1.1rem; font-weight:bold; margin-top:0.2rem; line-height:1.2;">vs ${m.opponent}</div>
+                                <div class="match-card-date"><i class="fa-regular fa-calendar"></i> ${m.date} | ${m.type}</div>
+                                <div class="match-card-opponent">vs ${m.opponent}</div>
                             </div>
-                            <div style="font-size:1.25rem; font-weight:bold; color:var(--primary); white-space:nowrap;">${m.result}</div>
+                            <div class="match-card-result">${m.result}</div>
                         </div>
-                        <div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem; border-top:1px solid var(--surface-border); padding-top:0.5rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${m.scorers || '記録なし'}">
+                        <div class="match-card-scorers" title="${m.scorers || '記録なし'}">
                             <i class="fa-solid fa-futbol" style="font-size:0.8rem;"></i> ${m.scorers || '記録なし'}
                         </div>
-                        <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:auto;">
-                            <button class="btn btn-secondary btn-detail-match" data-id="${m.id}" style="padding:0.25rem 0.5rem; font-size:0.8rem;"><i class="fa-solid fa-circle-info"></i> 詳細</button>
-                            <button class="btn btn-danger btn-delete-match" data-id="${m.id}" style="padding:0.25rem 0.5rem; font-size:0.8rem;"><i class="fa-solid fa-trash"></i></button>
+                        <div class="match-card-actions">
+                            <button class="btn btn-secondary btn-detail-match" data-id="${m.id}"><i class="fa-solid fa-circle-info"></i> 詳細</button>
+                            <button class="btn btn-danger btn-delete-match" data-id="${m.id}"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
                 `;
@@ -882,7 +1090,25 @@ function initMatches() {
                 </div>
             `;
         });
-        matchList.innerHTML = html || '<div class="card text-secondary" style="padding:2rem; text-align:center;">試合記録がありません。</div>';
+        matchList.innerHTML = html || `
+            <div class="card" style="padding:3rem 2rem; text-align:center; border: 1.5px dashed var(--surface-border); display:flex; flex-direction:column; align-items:center; gap:1rem; width:100%; box-sizing:border-box;">
+                <div style="font-size:3rem; color:var(--text-secondary); opacity:0.6;"><i class="fa-solid fa-trophy"></i></div>
+                <h3 style="font-size:1.15rem; margin:0; color:var(--text-primary); font-weight:600;">まだ試合記録がありません</h3>
+                <p style="font-size:0.85rem; color:var(--text-secondary); max-width:340px; margin:0; line-height:1.4;">
+                    チームの試合結果や得点者、フォーメーション、選手別振り返りメモを記録して、日々の成長を追跡しましょう。
+                </p>
+                <button class="btn btn-primary" id="btn-empty-add-match" style="margin-top:0.5rem;"><i class="fa-solid fa-plus"></i> 最初の試合を追加</button>
+            </div>
+        `;
+        setTimeout(() => {
+            const btnEmptyAdd = document.getElementById('btn-empty-add-match');
+            if (btnEmptyAdd) {
+                btnEmptyAdd.onclick = () => {
+                    const btnAdd = document.getElementById('btn-add-match');
+                    if (btnAdd) btnAdd.click();
+                };
+            }
+        }, 50);
     }
 
     // Match Modal
@@ -953,16 +1179,38 @@ function openMatchDetail(id) {
         tabInfo.click();
 
         // 1. Render Basic Info
+        let scorersHtml = '記録なし';
+        if (m.goalRecords && m.goalRecords.length > 0) {
+            scorersHtml = m.goalRecords.map((r, idx) => {
+                let scorerText = '';
+                if (r.scorerId) {
+                    const sPlayer = state.players.find(pl => pl.id === r.scorerId);
+                    scorerText = sPlayer ? `<span class="player-link" data-id="${sPlayer.id}" style="cursor:pointer; font-weight:bold; color:var(--primary); text-decoration:underline;">${sPlayer.number} ${sPlayer.name}</span>` : '不明な選手';
+                } else {
+                    scorerText = 'オウンゴール/その他';
+                }
+                
+                let assistText = '';
+                if (r.assistId) {
+                    const aPlayer = state.players.find(pl => pl.id === r.assistId);
+                    assistText = aPlayer ? ` (アシ: <span class="player-link" data-id="${aPlayer.id}" style="cursor:pointer; font-weight:bold; color:var(--primary); text-decoration:underline;">${aPlayer.number} ${aPlayer.name}</span>)` : '';
+                }
+                return `<div style="margin-bottom:0.25rem;">${idx+1}. ${scorerText}${assistText}</div>`;
+            }).join('');
+        } else if (m.scorers) {
+            scorersHtml = `<div>${m.scorers}</div>`;
+        }
+
         const content = document.getElementById('match-detail-content');
         content.innerHTML = `
             <div style="font-size:1.2rem; font-weight:bold;">${m.date} | ${m.type}</div>
             <div style="font-size:1.5rem; color:var(--primary); margin-bottom:1rem;">vs ${m.opponent} (${m.result})</div>
-            <div style="background:rgba(0,0,0,0.05); padding:1rem; border-radius:8px;">
-                <h4 style="margin-bottom:0.5rem; color:var(--text-secondary);"><i class="fa-solid fa-futbol"></i> 得点者・アシスト</h4>
-                <p>${m.scorers || '記録なし'}</p>
+            <div class="detail-box">
+                <h4><i class="fa-solid fa-futbol"></i> 得点者・アシスト</h4>
+                <div style="font-size:0.95rem; line-height:1.4;">${scorersHtml}</div>
             </div>
-            <div style="background:rgba(0,0,0,0.05); padding:1rem; border-radius:8px;">
-                <h4 style="margin-bottom:0.5rem; color:var(--text-secondary);"><i class="fa-solid fa-comment-dots"></i> チーム振り返りメモ</h4>
+            <div class="detail-box">
+                <h4><i class="fa-solid fa-comment-dots"></i> チーム振り返りメモ</h4>
                 <p style="white-space:pre-wrap;">${m.comments || '記録なし'}</p>
             </div>
         `;
@@ -974,7 +1222,7 @@ function openMatchDetail(id) {
                 const p = state.players.find(player => player.id === fb.playerId);
                 const pname = p ? `${p.number} ${p.name}` : '不明な選手';
                 return `
-                    <div style="background:rgba(0,0,0,0.05); padding:0.8rem; border-radius:4px;">
+                    <div class="feedback-box">
                         <strong style="color:var(--primary); font-size:0.9rem;">${pname}</strong>
                         <p style="margin-top:0.3rem; font-size:0.95rem; white-space:pre-wrap;">${fb.comment}</p>
                     </div>
@@ -1154,11 +1402,50 @@ function openMatchDetail(id) {
             };
         }
 
+        // Bind player links click
+        setTimeout(() => {
+            const detailModal = document.getElementById('modal-match-detail');
+            document.querySelectorAll('#modal-match-detail .player-link').forEach(link => {
+                link.onclick = (e) => {
+                    const pid = parseInt(e.currentTarget.dataset.id);
+                    if (detailModal) detailModal.classList.add('hidden');
+                    openPlayerDetail(pid);
+                };
+            });
+        }, 50);
+
         openModal('modal-match-detail');
     }
 }
 
 let currentPracticeMonth = 'all';
+
+function renderPracticeRoster(selectedPlayerIds = []) {
+    const container = document.getElementById('practice-attendance-roster');
+    if (!container) return;
+    
+    if (state.players.length === 0) {
+        container.innerHTML = '<p class="text-secondary" style="font-size:0.85rem; margin:0;">登録されている選手がいません。「選手一覧」から選手を登録してください。</p>';
+        return;
+    }
+    
+    // Sort players by number
+    const sortedPlayers = [...state.players].sort((a, b) => {
+        const numA = parseInt(a.number, 10) || 0;
+        const numB = parseInt(b.number, 10) || 0;
+        return numA - numB;
+    });
+
+    container.innerHTML = sortedPlayers.map(p => {
+        const isChecked = selectedPlayerIds.includes(p.id) ? 'checked' : '';
+        return `
+            <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.9rem; cursor:pointer; padding:0.2rem 0;">
+                <input type="checkbox" value="${p.id}" ${isChecked} style="width:16px; height:16px; cursor:pointer;">
+                <span>${p.number} ${p.name}</span>
+            </label>
+        `;
+    }).join('');
+}
 
 function initPractices() {
     // Nendo Filter Setup
@@ -1222,42 +1509,48 @@ function initPractices() {
     let html = '';
     sortedMonths.forEach(month => {
         html += `
-            <div style="margin-bottom: 2rem;">
-                <h3 style="margin-bottom: 1rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; display:inline-block;">${month}</h3>
+            <div class="month-section">
+                <h3>${month}</h3>
                 <div class="library-grid">
         `;
         grouped[month].forEach(p => {
             html += `
-                <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; height:100%;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--surface-border); padding-bottom:0.8rem; margin-bottom:0.8rem;">
+                <div class="card practice-card">
+                    <div class="practice-card-header">
                         <div>
-                            <div style="font-size:1.1rem; font-weight:bold;"><i class="fa-regular fa-calendar"></i> ${p.date}</div>
-                            <div class="text-secondary" style="font-size:0.9rem;"><i class="fa-solid fa-users"></i> ${p.attendance}</div>
+                            <div class="practice-card-header-title"><i class="fa-regular fa-calendar"></i> ${p.date}</div>
+                            <div class="text-secondary" style="font-size:0.9rem; margin-top:0.15rem;" title="${p.presentPlayerIds && p.presentPlayerIds.length > 0 ? state.players.filter(pl => p.presentPlayerIds.includes(pl.id)).map(pl => `${pl.number} ${pl.name}`).join('、') : '出席者リストなし'}">
+                                <i class="fa-solid fa-users"></i> ${p.presentPlayerIds ? `${p.presentPlayerIds.length}/${state.players.length}` : p.attendance}
+                            </div>
                         </div>
                         <div style="display:flex; gap:0.3rem;">
                             <button class="btn btn-primary btn-add-menu" data-id="${p.id}" style="padding:0.4rem 0.6rem; font-size:0.8rem;" title="メニュー追加"><i class="fa-solid fa-plus"></i></button>
+                            <button class="btn btn-secondary btn-edit-practice" data-id="${p.id}" style="padding:0.4rem 0.6rem; font-size:0.8rem;" title="練習日詳細を編集"><i class="fa-solid fa-pen"></i></button>
                             <button class="btn btn-danger btn-delete-practice" data-id="${p.id}" style="padding:0.4rem 0.6rem; font-size:0.8rem;"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
-                    <ul class="item-list" style="padding:0; margin:0; flex:1; overflow-y:auto; max-height:300px;">
+                    <ul class="practice-card-menu-list">
                         ${p.menus.length > 0 ? p.menus.map(menu => `
-                            <li style="border-radius:4px; margin-bottom:0.5rem; background:rgba(0,0,0,0.03); display:block; padding:0.8rem; border-bottom:none;">
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                                    <div style="font-size:1rem; font-weight:bold; color:var(--primary); line-height:1.3; flex:1; margin-right:0.5rem;">${menu.focus}</div>
-                                    <div style="display:flex; gap:0.3rem;">
-                                        <button class="btn btn-secondary btn-edit-menu" data-pid="${p.id}" data-mid="${menu.id}" style="padding:0.3rem; font-size:0.8rem;" title="編集"><i class="fa-solid fa-pen"></i></button>
-                                        <button class="btn btn-secondary btn-anim-practice" data-pid="${p.id}" data-mid="${menu.id}" style="padding:0.3rem; font-size:0.8rem;" title="作図"><i class="fa-solid fa-person-running"></i></button>
-                                        <button class="btn btn-danger btn-delete-menu" data-pid="${p.id}" data-mid="${menu.id}" style="padding:0.3rem; font-size:0.8rem;"><i class="fa-solid fa-times"></i></button>
+                            <li class="practice-menu-item" style="padding: 0; border: none; list-style: none; margin-bottom: 0.5rem;">
+                                <details class="practice-menu-details" style="background: rgba(0, 0, 0, 0.03); border: 1px solid var(--surface-border); border-radius: 12px; cursor: pointer; width: 100%;">
+                                    <summary class="practice-menu-item-header" style="display:flex; justify-content:space-between; align-items:center; padding:0.8rem; list-style:none; outline:none; box-sizing:border-box;">
+                                        <span class="practice-menu-item-title" style="display:inline-flex; align-items:center; gap:0.5rem; font-size:0.95rem; font-weight:bold; color:var(--primary);"><i class="fa-solid fa-chevron-down" style="font-size:0.75rem; color:var(--text-secondary); transition:transform 0.2s;"></i> ${menu.focus}</span>
+                                        <div style="display:flex; gap:0.3rem;" onclick="event.stopPropagation();">
+                                            <button class="btn btn-secondary btn-edit-menu" data-pid="${p.id}" data-mid="${menu.id}" style="padding:0.3rem; font-size:0.8rem;" title="編集"><i class="fa-solid fa-pen"></i></button>
+                                            <button class="btn btn-secondary btn-anim-practice" data-pid="${p.id}" data-mid="${menu.id}" style="padding:0.3rem; font-size:0.8rem;" title="作図"><i class="fa-solid fa-person-running"></i></button>
+                                            <button class="btn btn-danger btn-delete-menu" data-pid="${p.id}" data-mid="${menu.id}" style="padding:0.3rem; font-size:0.8rem;"><i class="fa-solid fa-times"></i></button>
+                                        </div>
+                                    </summary>
+                                    ${(menu.organize || menu.keyfactor || menu.options) ? `
+                                    <div class="practice-menu-item-details" style="padding:0 0.8rem 0.8rem 0.8rem; border-top:1px solid rgba(0,0,0,0.05); font-size:0.85rem; color:var(--text-secondary); display:flex; flex-direction:column; gap:0.5rem; margin-top:0.4rem;">
+                                        ${menu.organize ? `<div><strong><i class="fa-solid fa-users"></i> オーガナイズ</strong><div style="white-space:pre-wrap; margin-top:0.15rem;">${menu.organize}</div></div>` : ''}
+                                        ${menu.keyfactor ? `<div><strong><i class="fa-solid fa-key"></i> キーファクター</strong><div style="white-space:pre-wrap; margin-top:0.15rem;">${menu.keyfactor}</div></div>` : ''}
+                                        ${menu.options ? `<div><strong><i class="fa-solid fa-sliders"></i> オプション</strong><div style="white-space:pre-wrap; margin-top:0.15rem;">${menu.options}</div></div>` : ''}
                                     </div>
-                                </div>
-                                ${(menu.organize || menu.keyfactor) ? `
-                                <div style="margin-top:0.5rem; font-size:0.85rem; display:flex; flex-direction:column; gap:0.3rem; color:var(--text-secondary);">
-                                    ${menu.organize ? `<div><strong style="color:var(--text-secondary);"><i class="fa-solid fa-users"></i> オーガナイズ</strong><br><span style="white-space:pre-wrap;">${menu.organize}</span></div>` : ''}
-                                    ${menu.keyfactor ? `<div><strong style="color:var(--text-secondary);"><i class="fa-solid fa-key"></i> キーファクター</strong><br><span style="white-space:pre-wrap;">${menu.keyfactor}</span></div>` : ''}
-                                </div>
-                                ` : ''}
+                                    ` : '<div style="padding:0 0.8rem 0.8rem 0.8rem; font-size:0.8rem; color:var(--text-secondary);">詳細説明はありません。</div>'}
+                                </details>
                             </li>
-                        `).join('') : '<li class="text-secondary" style="font-style:italic; border-bottom:none; padding:0.5rem 0;">メニューなし</li>'}
+                        `).join('') : '<li class="text-secondary" style="font-style:italic; border-bottom:none; padding:0.5rem 0; list-style:none;">メニューなし</li>'}
                     </ul>
                 </div>
             `;
@@ -1266,13 +1559,60 @@ function initPractices() {
     });
     
     if (sortedMonths.length === 0) {
-        html = '<p class="text-secondary">練習記録がありません。</p>';
+        html = `
+            <div class="card" style="padding:3rem 2rem; text-align:center; border: 1.5px dashed var(--surface-border); display:flex; flex-direction:column; align-items:center; gap:1rem; width:100%; box-sizing:border-box;">
+                <div style="font-size:3rem; color:var(--text-secondary); opacity:0.6;"><i class="fa-solid fa-calendar-check"></i></div>
+                <h3 style="font-size:1.15rem; margin:0; color:var(--text-primary); font-weight:600;">まだ練習管理がありません</h3>
+                <p style="font-size:0.85rem; color:var(--text-secondary); max-width:340px; margin:0; line-height:1.4;">
+                    日々の練習日を作成し、テーマに応じたトレーニングメニューのアサインや、戦術ボードでの作図を行いましょう。
+                </p>
+                <button class="btn btn-primary" id="btn-empty-add-practice" style="margin-top:0.5rem;"><i class="fa-solid fa-plus"></i> 最初の練習日を追加</button>
+            </div>
+        `;
+        setTimeout(() => {
+            const btnEmptyAdd = document.getElementById('btn-empty-add-practice');
+            if (btnEmptyAdd) {
+                btnEmptyAdd.onclick = () => {
+                    const btnAdd = document.getElementById('btn-add-practice');
+                    if (btnAdd) btnAdd.click();
+                };
+            }
+        }, 50);
     }
 
     practiceList.innerHTML = html;
 
     document.getElementById('btn-add-practice').addEventListener('click', () => {
+        document.getElementById('form-practice').reset();
+        document.getElementById('practice-edit-id').value = '';
+        const title = document.getElementById('practice-modal-title');
+        if (title) title.textContent = '練習日を追加';
+        const allPlayerIds = state.players.map(p => p.id);
+        renderPracticeRoster(allPlayerIds);
         openModal('modal-practice');
+    });
+
+    document.querySelectorAll('.btn-edit-practice').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = parseInt(e.currentTarget.dataset.id);
+            const p = state.practices.find(prac => prac.id === id);
+            if (p) {
+                document.getElementById('practice-edit-id').value = p.id;
+                document.getElementById('practice-date').value = p.date;
+                const title = document.getElementById('practice-modal-title');
+                if (title) title.textContent = '練習日情報を編集';
+                
+                let activeIds = p.presentPlayerIds;
+                if (!activeIds && p.attendance) {
+                    activeIds = state.players.map(pl => pl.id);
+                } else if (!activeIds) {
+                    activeIds = [];
+                }
+                
+                renderPracticeRoster(activeIds);
+                openModal('modal-practice');
+            }
+        });
     });
 
     document.querySelectorAll('.btn-add-menu').forEach(btn => {
@@ -1401,40 +1741,61 @@ function initPlayers() {
     const playerGrid = document.getElementById('player-grid');
     if (!playerGrid) return;
     
-    playerGrid.innerHTML = state.players.map(p => {
-        const currentSkills = p.history && p.history.length > 0 ? p.history[0].skills : [0,0,0,0,0,0];
-        return `
-            <div class="player-card" style="cursor:pointer;" onclick="openPlayerDetail(${p.id})">
-                <div class="player-card-header">
-                    <div>
-                        <div style="display:flex; gap:0.25rem; flex-wrap:wrap; margin-bottom:0.3rem;">
-                            ${(Array.isArray(p.position) ? p.position : [p.position]).map(pos => {
-                                if (!pos) return '';
-                                const lower = pos.toLowerCase();
-                                let badgeClass = 'badge-sub';
-                                if (lower === 'fw') badgeClass = 'badge-fw';
-                                else if (lower === 'mf') badgeClass = 'badge-mf';
-                                else if (lower === 'df') badgeClass = 'badge-df';
-                                else if (lower === 'gk') badgeClass = 'badge-gk';
-                                return `<span class="player-position ${badgeClass}" style="font-size:0.7rem; padding:0.1rem 0.35rem; border-radius:12px; font-weight:600; display:inline-block;">${pos}</span>`;
-                            }).join('')}
-                        </div>
-                        <div style="font-size:1.2rem; font-weight:bold; margin-top:0.2rem;">${p.name}</div>
-                    </div>
-                    <div class="player-number">${p.number}</div>
-                </div>
-                <div class="radar-container">
-                    <canvas id="radar-${p.id}" width="200" height="200"></canvas>
-                </div>
+    if (state.players.length === 0) {
+        playerGrid.innerHTML = `
+            <div class="card" style="grid-column: 1 / -1; padding:3rem 2rem; text-align:center; border: 1.5px dashed var(--surface-border); display:flex; flex-direction:column; align-items:center; gap:1rem; box-sizing:border-box;">
+                <div style="font-size:3rem; color:var(--text-secondary); opacity:0.6;"><i class="fa-solid fa-users"></i></div>
+                <h3 style="font-size:1.15rem; margin:0; color:var(--text-primary); font-weight:600;">登録選手がいません</h3>
+                <p style="font-size:0.85rem; color:var(--text-secondary); max-width:340px; margin:0; line-height:1.4;">
+                    選手を登録して、スキル評価のレーダーチャート作成や、試合での出場ポジション設定、成長履歴の管理を始めましょう。
+                </p>
+                <button class="btn btn-primary" id="btn-empty-add-player" style="margin-top:0.5rem;"><i class="fa-solid fa-user-plus"></i> 最初の選手を追加</button>
             </div>
         `;
-    }).join('');
+        setTimeout(() => {
+            const btnEmptyAdd = document.getElementById('btn-empty-add-player');
+            if (btnEmptyAdd) {
+                btnEmptyAdd.onclick = () => {
+                    const btnAdd = document.getElementById('btn-add-player');
+                    if (btnAdd) btnAdd.click();
+                };
+            }
+        }, 50);
+    } else {
+        playerGrid.innerHTML = state.players.map(p => {
+            return `
+                <div class="player-card" style="cursor:pointer;" onclick="openPlayerDetail(${p.id})">
+                    <div class="player-card-header">
+                        <div>
+                            <div style="display:flex; gap:0.25rem; flex-wrap:wrap; margin-bottom:0.3rem;">
+                                ${(Array.isArray(p.position) ? p.position : [p.position]).map(pos => {
+                                    if (!pos) return '';
+                                    const lower = pos.toLowerCase();
+                                    let badgeClass = 'badge-sub';
+                                    if (lower === 'fw') badgeClass = 'badge-fw';
+                                    else if (lower === 'mf') badgeClass = 'badge-mf';
+                                    else if (lower === 'df') badgeClass = 'badge-df';
+                                    else if (lower === 'gk') badgeClass = 'badge-gk';
+                                    return `<span class="player-position ${badgeClass}" style="font-size:0.7rem; padding:0.1rem 0.35rem; border-radius:12px; font-weight:600; display:inline-block;">${pos}</span>`;
+                                }).join('')}
+                            </div>
+                            <div style="font-size:1.2rem; font-weight:bold; margin-top:0.2rem;">${p.name}</div>
+                        </div>
+                        <div class="player-number">${p.number}</div>
+                    </div>
+                    <div class="radar-container">
+                        <canvas id="radar-${p.id}" width="200" height="200"></canvas>
+                    </div>
+                </div>
+            `;
+        }).join('');
 
-    // Draw Radar Charts
-    state.players.forEach(p => {
-        const currentSkills = p.history && p.history.length > 0 ? p.history[0].skills : [0,0,0,0,0,0];
-        drawRadarChart(`radar-${p.id}`, currentSkills);
-    });
+        // Draw Radar Charts
+        state.players.forEach(p => {
+            const currentSkills = p.history && p.history.length > 0 ? p.history[0].skills : [0,0,0,0,0,0];
+            drawRadarChart(`radar-${p.id}`, currentSkills);
+        });
+    }
 
     const btnAdd = document.getElementById('btn-add-player');
     if(btnAdd) {
@@ -1516,35 +1877,66 @@ function initLibrary() {
     });
 
     if (filteredMenus.length === 0) {
-        libraryList.innerHTML = '<p class="text-secondary" style="text-align:center; padding:2rem;">登録されているメニューがありません。</p>';
+        libraryList.innerHTML = `
+            <div class="card" style="padding:3rem 2rem; text-align:center; border: 1.5px dashed var(--surface-border); display:flex; flex-direction:column; align-items:center; gap:1rem; width:100%; box-sizing:border-box;">
+                <div style="font-size:3rem; color:var(--text-secondary); opacity:0.6;"><i class="fa-solid fa-book"></i></div>
+                <h3 style="font-size:1.15rem; margin:0; color:var(--text-primary); font-weight:600;">メニューライブラリが空です</h3>
+                <p style="font-size:0.85rem; color:var(--text-secondary); max-width:340px; margin:0; line-height:1.4;">
+                    練習のテーマ、オーガナイズ、キーファクターをライブラリ化し、戦術ボードで作図しておくことで、いつでも練習日へコピーして計画を立てられます。
+                </p>
+                <button class="btn btn-primary" id="btn-empty-add-library" style="margin-top:0.5rem;"><i class="fa-solid fa-plus"></i> 最初のライブラリ作成</button>
+            </div>
+        `;
+        setTimeout(() => {
+            const btnEmptyAdd = document.getElementById('btn-empty-add-library');
+            if (btnEmptyAdd) {
+                btnEmptyAdd.onclick = () => {
+                    const btnAdd = document.getElementById('btn-add-library-menu');
+                    if (btnAdd) btnAdd.click();
+                };
+            }
+        }, 50);
     } else {
         libraryList.innerHTML = sortedCategories.map(cat => {
             const menus = grouped[cat];
             const cardsHtml = menus.map(m => {
                 return `
-                <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between; gap:1rem; min-height: 250px;">
+                <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between; gap:1rem; min-height: auto;">
                     <div>
                         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.5rem;">
                             <span class="badge" style="background:rgba(242, 57, 50, 0.15); color:var(--primary); font-weight:600; padding:0.25rem 0.5rem; border-radius:6px; margin:0; font-size:0.75rem;">${cat}</span>
                             <div style="display:flex; gap:0.3rem;">
+                                <button class="btn btn-secondary btn-assign-library" data-id="${m.id}" style="padding:0.2rem 0.4rem; font-size:0.8rem;" title="練習日にアサイン"><i class="fa-solid fa-calendar-plus"></i></button>
                                 <button class="btn btn-secondary btn-edit-library" data-id="${m.id}" style="padding:0.2rem 0.4rem; font-size:0.8rem;" title="編集"><i class="fa-solid fa-pen"></i></button>
                                 <button class="btn btn-secondary btn-anim-library" data-id="${m.id}" style="padding:0.2rem 0.4rem; font-size:0.8rem;" title="${m.frames && m.frames.length > 0 ? '作図を編集' : '作図する'}"><i class="fa-solid fa-person-running"></i></button>
                                 <button class="btn btn-danger btn-delete-library" data-id="${m.id}" style="padding:0.2rem 0.4rem; font-size:0.8rem;"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
-                        <div style="font-size:1.15rem; font-weight:bold; color:#fff; line-height:1.3; margin-bottom:0.5rem;">${m.focus}</div>
+                        <div style="font-size:1.15rem; font-weight:bold; color:var(--text-primary); line-height:1.3; margin-bottom:0.8rem;">${m.focus}</div>
                         
-                        ${m.frames && m.frames.length > 0 ? `
-                            <div style="width:100%; height:140px; background:#1e293b; border-radius:4px; overflow:hidden; position:relative; margin-bottom:0.8rem;">
-                                <canvas id="library-mini-pitch-${m.id}" width="800" height="500" style="width:100%; height:100%; object-fit:contain; pointer-events:none;"></canvas>
+                        <div class="library-canvas-wrapper" style="width:100%; height:140px; background:#1e293b; border-radius:8px; overflow:hidden; position:relative; margin-bottom:0.8rem; cursor:pointer;" onclick="navigate('animation', { libraryId: ${m.id} })">
+                            <canvas id="library-mini-pitch-${m.id}" width="800" height="500" style="width:100%; height:100%; object-fit:contain; pointer-events:none;"></canvas>
+                            <div class="canvas-hover-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; color:#fff; font-size:0.9rem; font-weight:bold; pointer-events:none;">
+                                <i class="fa-solid fa-person-running" style="margin-right:0.3rem;"></i> 作図画面を開く
                             </div>
-                        ` : ''}
-
-                        <div style="font-size:0.85rem; display:flex; flex-direction:column; gap:0.4rem; color:var(--text-secondary);">
-                            ${m.organize ? `<div><strong style="color:var(--text-secondary); font-size:0.8rem;"><i class="fa-solid fa-users"></i> オーガナイズ</strong><div style="white-space:pre-wrap; margin-top:0.1rem; line-height:1.3;">${m.organize}</div></div>` : ''}
-                            ${m.keyfactor ? `<div><strong style="color:var(--text-secondary); font-size:0.8rem;"><i class="fa-solid fa-key"></i> キーファクター</strong><div style="white-space:pre-wrap; margin-top:0.1rem; line-height:1.3;">${m.keyfactor}</div></div>` : ''}
-                            ${m.options ? `<div><strong style="color:var(--text-secondary); font-size:0.8rem;"><i class="fa-solid fa-plus"></i> オプション</strong><div style="white-space:pre-wrap; margin-top:0.1rem; line-height:1.3;">${m.options}</div></div>` : ''}
+                            ${m.frames && m.frames.length > 1 ? `
+                                <div style="position:absolute; bottom:6px; right:6px; background:rgba(0,0,0,0.6); color:#fff; font-size:0.65rem; padding:0.15rem 0.35rem; border-radius:4px; font-weight:bold; pointer-events:none; display:flex; align-items:center; gap:0.2rem;">
+                                    <span style="display:inline-block; width:6px; height:6px; background:#ef4444; border-radius:50%; animation: pulse 1.5s infinite;"></span>ANIM
+                                </div>
+                            ` : ''}
                         </div>
+
+                        <details class="library-card-details" style="background:rgba(0,0,0,0.02); border:1px solid var(--surface-border); border-radius:8px; cursor:pointer;">
+                            <summary style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.8rem; font-size:0.85rem; font-weight:bold; color:var(--text-secondary); list-style:none; outline:none; box-sizing:border-box;">
+                                <i class="fa-solid fa-chevron-down" style="font-size:0.75rem; color:var(--text-secondary); transition:transform 0.2s;"></i> 詳細を表示
+                            </summary>
+                            <div style="padding:0.8rem; border-top:1px solid rgba(0,0,0,0.05); font-size:0.85rem; display:flex; flex-direction:column; gap:0.5rem; color:var(--text-secondary); cursor:default;" onclick="event.stopPropagation();">
+                                ${m.organize ? `<div><strong style="color:var(--text-secondary); font-size:0.8rem;"><i class="fa-solid fa-users"></i> オーガナイズ</strong><div style="white-space:pre-wrap; margin-top:0.1rem; line-height:1.3;">${m.organize}</div></div>` : ''}
+                                ${m.keyfactor ? `<div><strong style="color:var(--text-secondary); font-size:0.8rem;"><i class="fa-solid fa-key"></i> キーファクター</strong><div style="white-space:pre-wrap; margin-top:0.1rem; line-height:1.3;">${m.keyfactor}</div></div>` : ''}
+                                ${m.options ? `<div><strong style="color:var(--text-secondary); font-size:0.8rem;"><i class="fa-solid fa-plus"></i> オプション</strong><div style="white-space:pre-wrap; margin-top:0.1rem; line-height:1.3;">${m.options}</div></div>` : ''}
+                                ${(!m.organize && !m.keyfactor && !m.options) ? '<div style="font-size:0.8rem; color:var(--text-secondary);">詳細説明はありません。</div>' : ''}
+                            </div>
+                        </details>
                     </div>
                 </div>`;
             }).join('');
@@ -1561,14 +1953,34 @@ function initLibrary() {
         }).join('');
     }
 
-    // Draw library mini pitches
+    // Clear old animation loops
+    if (window.libraryMiniPitchIntervals) {
+        window.libraryMiniPitchIntervals.forEach(clearInterval);
+    }
+    window.libraryMiniPitchIntervals = [];
+
+    // Draw library mini pitches (always draw, with fallback to empty pitch, loop animation if present)
     setTimeout(() => {
         filteredMenus.forEach(m => {
-            if(m.frames && m.frames.length > 0) {
-                const mCanv = document.getElementById(`library-mini-pitch-${m.id}`);
-                if(mCanv) {
-                    const mCtx = mCanv.getContext('2d');
-                    drawPitchToCtx(m.frames[m.frames.length - 1], mCanv, mCtx);
+            const mCanv = document.getElementById(`library-mini-pitch-${m.id}`);
+            if (mCanv) {
+                const mCtx = mCanv.getContext('2d');
+                if (m.frames && m.frames.length > 0) {
+                    if (m.frames.length > 1) {
+                        let frameIdx = 0;
+                        drawPitchToCtx(m.frames[frameIdx], mCanv, mCtx, m.pitchTemplate || 'full');
+                        
+                        const intervalId = setInterval(() => {
+                            frameIdx = (frameIdx + 1) % m.frames.length;
+                            drawPitchToCtx(m.frames[frameIdx], mCanv, mCtx, m.pitchTemplate || 'full');
+                        }, 1200);
+                        window.libraryMiniPitchIntervals.push(intervalId);
+                    } else {
+                        drawPitchToCtx(m.frames[0], mCanv, mCtx, m.pitchTemplate || 'full');
+                    }
+                } else {
+                    // Draw a blank court template (fallback)
+                    drawPitchToCtx([], mCanv, mCtx, m.pitchTemplate || 'full');
                 }
             }
         });
@@ -1631,7 +2043,84 @@ function initLibrary() {
             navigate('animation', { libraryId: id });
         });
     });
+
+    document.querySelectorAll('.btn-assign-library').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = parseInt(e.currentTarget.dataset.id);
+            openAssignPracticeModal(id);
+        });
+    });
 }
+
+function openAssignPracticeModal(menuId) {
+    const modal = document.getElementById('modal-assign-practice');
+    const inputMenuId = document.getElementById('assign-menu-id');
+    const practicesList = document.getElementById('assign-practices-list');
+    if (!modal || !inputMenuId || !practicesList) return;
+
+    inputMenuId.value = menuId;
+    practicesList.innerHTML = '';
+
+    if (state.practices.length > 0) {
+        const sortedPractices = [...state.practices].sort((a, b) => new Date(b.date) - new Date(a.date));
+        practicesList.innerHTML = sortedPractices.map(p => `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.03); padding:0.6rem; border-radius:8px; border:1px solid var(--surface-border);">
+                <div>
+                    <strong><i class="fa-regular fa-calendar"></i> ${p.date}</strong>
+                    <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.15rem;"><i class="fa-solid fa-users"></i> ${p.attendance} | メニュー数: ${p.menus.length}</div>
+                </div>
+                <button class="btn btn-primary btn-execute-assign" data-pid="${p.id}" style="padding:0.3rem 0.6rem; font-size:0.8rem;"><i class="fa-solid fa-check"></i> アサイン</button>
+            </div>
+        `).join('');
+
+        // Bind assign buttons
+        document.querySelectorAll('.btn-execute-assign').forEach(btn => {
+            btn.onclick = (e) => {
+                const pid = parseInt(e.currentTarget.dataset.pid);
+                const mid = parseInt(inputMenuId.value);
+                
+                const practice = state.practices.find(p => p.id === pid);
+                const libMenu = state.menuLibrary.find(m => m.id === mid);
+                
+                if (practice && libMenu) {
+                    let frames = null;
+                    if (libMenu.frames) {
+                        frames = JSON.parse(JSON.stringify(libMenu.frames)); // Deep copy
+                    }
+                    
+                    const newMenuObj = {
+                        id: Date.now(),
+                        focus: libMenu.focus,
+                        organize: libMenu.organize,
+                        keyfactor: libMenu.keyfactor,
+                        options: libMenu.options,
+                        category: libMenu.category || 'その他',
+                        frames: frames
+                    };
+                    
+                    practice.menus.push(newMenuObj);
+                    saveData();
+                    showToast(`「${libMenu.focus}」を ${practice.date} の練習にアサインしました`);
+                    modal.classList.add('hidden');
+                }
+            };
+        });
+    } else {
+        practicesList.innerHTML = '<p class="text-secondary" style="font-size:0.85rem; text-align:center; padding:1rem;">練習予定・記録がありません。</p>';
+    }
+
+    // Add practice button inside modal
+    const btnAddPractice = document.getElementById('btn-assign-add-practice');
+    if (btnAddPractice) {
+        btnAddPractice.onclick = () => {
+            modal.classList.add('hidden');
+            openModal('modal-practice');
+        };
+    }
+
+    modal.classList.remove('hidden');
+}
+
 
 // Settings Logic
 function initSettings() {
@@ -1870,6 +2359,59 @@ function openPlayerDetail(id) {
     const elPdAssists = document.getElementById('pd-assists');
     if (elPdGoals) elPdGoals.textContent = playerGoals;
     if (elPdAssists) elPdAssists.textContent = playerAssists;
+
+    const btnPdGoals = document.getElementById('btn-pd-goals');
+    if (btnPdGoals) {
+        btnPdGoals.onclick = () => {
+            const matchesWithGoals = state.matches.filter(m => 
+                m.goalRecords && m.goalRecords.some(r => r.scorerId === p.id)
+            );
+            
+            const pmlTitle = document.getElementById('pml-title');
+            const pmlContent = document.getElementById('pml-content');
+            if (pmlTitle && pmlContent) {
+                pmlTitle.innerHTML = `<i class="fa-solid fa-futbol"></i> ${p.name} の得点した試合`;
+                pmlContent.innerHTML = matchesWithGoals.length > 0 ? matchesWithGoals.map(m => `
+                    <div class="feedback-box" style="display:flex; justify-content:space-between; align-items:center; padding:0.6rem 0.8rem; cursor:pointer;" onclick="document.getElementById('modal-player-detail').classList.add('hidden'); document.getElementById('modal-player-matches-list').classList.add('hidden'); openMatchDetail(${m.id})">
+                        <div>
+                            <strong>vs ${m.opponent}</strong>
+                            <div style="font-size:0.75rem; color:var(--text-secondary);"><i class="fa-regular fa-calendar"></i> ${m.date} | ${m.type}</div>
+                        </div>
+                        <div style="font-size:1.15rem; font-weight:bold; color:var(--primary);">${m.result}</div>
+                    </div>
+                `).join('') : '<p class="text-secondary" style="font-size:0.85rem; padding:1rem; text-align:center;">得点した試合はありません。</p>';
+                
+                openModal('modal-player-matches-list');
+            }
+        };
+    }
+
+    const btnPdAssists = document.getElementById('btn-pd-assists');
+    if (btnPdAssists) {
+        btnPdAssists.onclick = () => {
+            const matchesWithAssists = state.matches.filter(m => 
+                m.goalRecords && m.goalRecords.some(r => r.assistId === p.id)
+            );
+            
+            const pmlTitle = document.getElementById('pml-title');
+            const pmlContent = document.getElementById('pml-content');
+            if (pmlTitle && pmlContent) {
+                pmlTitle.innerHTML = `<span style="display:inline-block; transform:rotate(45deg); color:#22c55e;"><i class="fa-solid fa-shoe-prints"></i></span> ${p.name} のアシストした試合`;
+                pmlContent.innerHTML = matchesWithAssists.length > 0 ? matchesWithAssists.map(m => `
+                    <div class="feedback-box" style="display:flex; justify-content:space-between; align-items:center; padding:0.6rem 0.8rem; cursor:pointer;" onclick="document.getElementById('modal-player-detail').classList.add('hidden'); document.getElementById('modal-player-matches-list').classList.add('hidden'); openMatchDetail(${m.id})">
+                        <div>
+                            <strong>vs ${m.opponent}</strong>
+                            <div style="font-size:0.75rem; color:var(--text-secondary);"><i class="fa-regular fa-calendar"></i> ${m.date} | ${m.type}</div>
+                        </div>
+                        <div style="font-size:1.15rem; font-weight:bold; color:var(--primary);">${m.result}</div>
+                    </div>
+                `).join('') : '<p class="text-secondary" style="font-size:0.85rem; padding:1rem; text-align:center;">アシストした試合はありません。</p>';
+                
+                openModal('modal-player-matches-list');
+            }
+        };
+    }
+
     
     // Collect all timeline events (Assessments + Match Feedbacks)
     let timeline = [];
@@ -1897,11 +2439,12 @@ function openPlayerDetail(id) {
     historyList.innerHTML = timeline.length > 0 ? timeline.map(item => {
         if (item.type === 'assessment') {
             return `
-                <div style="border-left:2px solid var(--primary); padding-left:1rem; margin-bottom:1.5rem; position:relative;">
-                    <div style="position:absolute; left:-6px; top:0; width:10px; height:10px; border-radius:50%; background:var(--primary);"></div>
-                    <div class="text-secondary" style="font-size:0.8rem; margin-bottom:0.2rem;">${item.date} <span style="background:var(--primary); color:#fff; padding:0.1rem 0.4rem; border-radius:4px; font-size:0.7rem; margin-left:0.5rem;">スキル評価</span></div>
-                    <div style="font-weight:bold; margin-bottom:0.5rem; white-space:pre-wrap; line-height:1.4; font-size:0.9rem;">${item.comment}</div>
-                    <div style="font-size:0.85rem; color:var(--text-secondary);">S:${item.data ? item.data.skills[0] : item.skills[0]} P:${item.data ? item.data.skills[1] : item.skills[1]} D:${item.data ? item.data.skills[2] : item.skills[2]} DF:${item.data ? item.data.skills[3] : item.skills[3]} PH:${item.data ? item.data.skills[4] : item.skills[4]} M:${item.data ? item.data.skills[5] : item.skills[5]}</div>
+                <div class="timeline-item">
+                    <div class="timeline-item-date">
+                        ${item.date} <span class="timeline-item-badge">スキル評価</span>
+                    </div>
+                    <div class="timeline-item-comment">${item.comment}</div>
+                    <div class="timeline-item-skills">S:${item.data ? item.data.skills[0] : item.skills[0]} P:${item.data ? item.data.skills[1] : item.skills[1]} D:${item.data ? item.data.skills[2] : item.skills[2]} DF:${item.data ? item.data.skills[3] : item.skills[3]} PH:${item.data ? item.data.skills[4] : item.skills[4]} M:${item.data ? item.data.skills[5] : item.skills[5]}</div>
                 </div>
             `;
         } else {
@@ -1909,9 +2452,10 @@ function openPlayerDetail(id) {
             const firstForm = (matchingMatch && matchingMatch.formations && matchingMatch.formations.length > 0) ? matchingMatch.formations[0] : null;
             const linkBtn = firstForm ? `<button class="btn btn-secondary btn-timeline-anim" data-match-id="${matchingMatch.id}" data-form-id="${firstForm.id}" style="padding:0.25rem 0.5rem; font-size:0.75rem; margin-top:0.35rem; display:inline-flex; align-items:center; gap:0.2rem;"><i class="fa-solid fa-person-running"></i> 作図を見る</button>` : '';
             return `
-                <div style="border-left:2px solid #3b82f6; padding-left:1rem; margin-bottom:1.5rem; position:relative;">
-                    <div style="position:absolute; left:-6px; top:0; width:10px; height:10px; border-radius:50%; background:#3b82f6;"></div>
-                    <div class="text-secondary" style="font-size:0.8rem; margin-bottom:0.2rem;">${item.date} <span style="background:#3b82f6; color:#fff; padding:0.1rem 0.4rem; border-radius:4px; font-size:0.7rem; margin-left:0.5rem;">試合評価</span></div>
+                <div class="timeline-item match-timeline-item">
+                    <div class="timeline-item-date">
+                        ${item.date} <span class="timeline-item-badge">試合評価</span>
+                    </div>
                     <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0.3rem;">${item.matchDetails}</p>
                     <p>${item.comment}</p>
                     ${linkBtn}
@@ -3247,17 +3791,68 @@ function drawPitchToCtx(renderObjects, targetCanvas, targetCtx, template = 'full
                 targetCtx.setLineDash([]);
             }
         } else if (obj.type === 'ball') {
+            // Draw shadow
             targetCtx.beginPath();
             targetCtx.arc(obj.x + 1, obj.y + 1, obj.radius, 0, Math.PI * 2);
             targetCtx.fillStyle = 'rgba(0,0,0,0.3)';
             targetCtx.fill();
             
+            // Draw base white circle
             targetCtx.beginPath();
             targetCtx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
-            targetCtx.fillStyle = obj.color;
+            targetCtx.fillStyle = '#ffffff';
             targetCtx.fill();
-            targetCtx.strokeStyle = '#000000';
-            targetCtx.lineWidth = 1;
+            targetCtx.strokeStyle = '#334155';
+            targetCtx.lineWidth = 1.5;
+            targetCtx.stroke();
+            
+            // Draw pentagon in center
+            const r = obj.radius;
+            const pentRadius = r * 0.38;
+            targetCtx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
+                const px = obj.x + pentRadius * Math.cos(angle);
+                const py = obj.y + pentRadius * Math.sin(angle);
+                if (i === 0) targetCtx.moveTo(px, py);
+                else targetCtx.lineTo(px, py);
+            }
+            targetCtx.closePath();
+            targetCtx.fillStyle = '#1e293b';
+            targetCtx.fill();
+            
+            // Draw lines radiating outward from pentagon corners to outer circle bounds
+            targetCtx.beginPath();
+            targetCtx.strokeStyle = '#334155';
+            targetCtx.lineWidth = 1.2;
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
+                const px = obj.x + pentRadius * Math.cos(angle);
+                const py = obj.y + pentRadius * Math.sin(angle);
+                const ox = obj.x + r * Math.cos(angle);
+                const oy = obj.y + r * Math.sin(angle);
+                
+                targetCtx.moveTo(px, py);
+                targetCtx.lineTo(ox, oy);
+            }
+            
+            // Draw boundary panel details (small lines linking outer parts)
+            for (let i = 0; i < 5; i++) {
+                const angle1 = (Math.PI * 2 * i) / 5 - Math.PI / 2;
+                const angle2 = (Math.PI * 2 * (i + 1)) / 5 - Math.PI / 2;
+                const midAngle = (angle1 + angle2) / 2;
+                
+                const ox1 = obj.x + r * Math.cos(angle1);
+                const oy1 = obj.y + r * Math.sin(angle1);
+                const oxMid = obj.x + r * Math.cos(midAngle);
+                const oyMid = obj.y + r * Math.sin(midAngle);
+                const ox2 = obj.x + r * Math.cos(angle2);
+                const oy2 = obj.y + r * Math.sin(angle2);
+                
+                targetCtx.moveTo(ox1, oy1);
+                targetCtx.lineTo(oxMid, oyMid);
+                targetCtx.lineTo(ox2, oy2);
+            }
             targetCtx.stroke();
             
             // Draw highlight if selected
