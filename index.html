@@ -372,7 +372,7 @@
                     </div>
                 </div>
             </div>
-        <div class="animation-workspace" style="display:flex; gap:0.8rem; align-items:flex-start;">
+        <div class="animation-workspace" style="display:flex; gap:0.8rem; align-items:stretch;">
             <!-- Left: Pitch Canvas -->
             <div style="flex:3; min-width:550px; max-width:100%; display:flex; flex-direction:column; gap:0.4rem;">
                 <div class="canvas-wrapper" id="canvas-wrapper" style="width:100%; aspect-ratio:8/5; background:#4ade80; border-radius:var(--border-radius); overflow:hidden; position:relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
@@ -394,12 +394,21 @@
                     </div>
                 </div>
 
-                <!-- Section 2: Player Selection / Numbers -->
+                <!-- Section 2: Player Selection / Numbers & Colors -->
                 <div class="canvas-toolbar-section" style="background:rgba(0,0,0,0.03); padding:0.25rem; border-radius:6px;">
-                    <div style="display:flex; align-items:center; gap:0.25rem; width:100%;">
+                    <div style="display:flex; align-items:center; gap:0.25rem; width:100%; flex-wrap:wrap;">
                         <label for="canvas-player-number" style="font-size:0.7rem; color:var(--text-secondary); margin:0; white-space:nowrap;">背番号:</label>
-                        <input type="text" id="canvas-player-number" value="1" maxlength="3" style="width:36px; padding:0.1rem; text-align:center; background:#ffffff; border:1px solid var(--surface-border); color:var(--text-primary); border-radius:3px; font-weight:bold; font-size:0.75rem; height:20px; box-sizing:border-box;">
-                        <select id="canvas-player-select" class="form-control hidden" style="flex:1; padding:0.1rem; font-size:0.7rem; border:1px solid var(--surface-border); border-radius:3px; height:20px;">
+                        <input type="text" id="canvas-player-number" value="1" maxlength="3" style="width:30px; padding:0.1rem; text-align:center; background:#ffffff; border:1px solid var(--surface-border); color:var(--text-primary); border-radius:3px; font-weight:bold; font-size:0.75rem; height:20px; box-sizing:border-box;">
+                        
+                        <label for="canvas-player-color" style="font-size:0.7rem; color:var(--text-secondary); margin:0; white-space:nowrap; margin-left:0.25rem;">色:</label>
+                        <select id="canvas-player-color" style="flex:1; padding:0.1rem; font-size:0.7rem; border:1px solid var(--surface-border); border-radius:3px; height:20px; background:#ffffff; color:var(--text-primary);">
+                            <option value="red" style="color:#f23932; font-weight:bold;">赤 (自チーム)</option>
+                            <option value="blue" style="color:#3d79d5; font-weight:bold;">青 (相手)</option>
+                            <option value="green" style="color:#63a84d; font-weight:bold;">緑 (GK/控え)</option>
+                            <option value="orange" style="color:#f09f4d; font-weight:bold;">橙 (フリーマン)</option>
+                        </select>
+                        
+                        <select id="canvas-player-select" class="form-control hidden" style="width:100%; padding:0.1rem; font-size:0.7rem; border:1px solid var(--surface-border); border-radius:3px; height:20px; margin-top:0.2rem;">
                             <!-- Populated dynamically -->
                         </select>
                     </div>
@@ -408,44 +417,41 @@
                 <!-- Scrollable sections container to prevent any overflow issues -->
                 <div style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:0.35rem; padding-right:2px;">
                     
-                    <!-- Section 3: Player Placement -->
+                    <!-- Section 3: Players & Basic Tools -->
                     <div class="canvas-toolbar-section">
-                        <div class="canvas-toolbar-section-title"><i class="fa-solid fa-users"></i> 選手配置</div>
+                        <div class="canvas-toolbar-section-title"><i class="fa-solid fa-hand-pointer"></i> 選手・基本操作</div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.2rem;">
                             <button class="btn btn-secondary tool-btn active" data-tool="select" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選択"><i class="fa-solid fa-hand-pointer"></i> 選択</button>
                             <button class="btn btn-secondary tool-btn" data-tool="text" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="文字"><i class="fa-solid fa-font"></i> 文字</button>
                             
-                            <button class="btn btn-secondary tool-btn" data-tool="red" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選手(自チーム)"><i class="fa-solid fa-circle" style="color:#f23932;"></i> 自チーム</button>
-                            <button class="btn btn-secondary tool-btn" data-tool="blue" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選手(相手チーム)"><i class="fa-solid fa-circle" style="color:#3d79d5;"></i> 相手</button>
-                            <button class="btn btn-secondary tool-btn" data-tool="green" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選手(GK/控え)"><i class="fa-solid fa-circle" style="color:#63a84d;"></i> GK/控え</button>
-                            <button class="btn btn-secondary tool-btn" data-tool="orange" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選手(フリーマン)"><i class="fa-solid fa-circle" style="color:#f09f4d;"></i> フリーマン</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="player" style="padding:0.2rem; font-size:0.7rem; justify-content:center; grid-column: span 2;" title="選手"><i class="fa-solid fa-user-plus"></i> 選手を配置</button>
+                            
+                            <button class="btn btn-secondary" id="tool-rotate" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="向きを回転"><i class="fa-solid fa-rotate-right"></i> 回転</button>
+                            <button class="btn btn-danger" id="tool-delete" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="選択削除"><i class="fa-solid fa-trash-can"></i> 選択削除</button>
                         </div>
                     </div>
 
-                    <!-- Section 4: Equipment / Target Placement -->
+                    <!-- Section 4: Equipment & Lines -->
                     <div class="canvas-toolbar-section">
-                        <div class="canvas-toolbar-section-title"><i class="fa-solid fa-toolbox"></i> 器具配置</div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.2rem;">
-                            <button class="btn btn-secondary tool-btn" data-tool="ball" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="ボール"><i class="fa-solid fa-futbol"></i> ボール</button>
-                            <button class="btn btn-secondary tool-btn" data-tool="marker" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="マーカー"><i class="fa-solid fa-circle" style="color:#f97316;"></i> マーク</button>
-                            <button class="btn btn-secondary tool-btn" data-tool="cone" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="コーン"><i class="fa-solid fa-caret-up" style="color:#facc15;"></i> コーン</button>
-                            <button class="btn btn-secondary tool-btn" data-tool="ladder" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="ラダー"><i class="fa-solid fa-bars" style="transform: rotate(90deg); display: inline-block;"></i> ラダー</button>
-                            <button class="btn btn-secondary tool-btn" data-tool="minigoal" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="ミニゴール"><span style="display:inline-block; width:10px; height:6px; border:2px solid #fff; border-bottom:none; vertical-align:middle; margin-right:2px;"></span> ゴール</button>
-                            <button class="btn btn-secondary tool-btn" data-tool="line-rect" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="四角枠"><i class="fa-regular fa-square" style="border: 1.5px dashed #cbd5e1; width: 10px; height: 10px; display: inline-block; vertical-align: middle;"></i> 四角</button>
+                        <div class="canvas-toolbar-section-title"><i class="fa-solid fa-toolbox"></i> 器具配置・ライン描画</div>
+                        <!-- Equipment Grid -->
+                        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:0.2rem; margin-bottom:0.35rem;">
+                            <button class="btn btn-secondary tool-btn" data-tool="ball" style="padding:0.2rem; font-size:0.65rem; justify-content:center;" title="ボール"><i class="fa-solid fa-futbol"></i> ボール</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="marker" style="padding:0.2rem; font-size:0.65rem; justify-content:center;" title="マーカー"><i class="fa-solid fa-circle" style="color:#f97316;"></i> マーク</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="cone" style="padding:0.2rem; font-size:0.65rem; justify-content:center;" title="コーン"><i class="fa-solid fa-caret-up" style="color:#facc15;"></i> コーン</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="ladder" style="padding:0.2rem; font-size:0.65rem; justify-content:center;" title="ラダー"><i class="fa-solid fa-bars" style="transform: rotate(90deg); display: inline-block;"></i> ラダー</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="minigoal" style="padding:0.2rem; font-size:0.65rem; justify-content:center;" title="ミニゴール"><span style="display:inline-block; width:10px; height:6px; border:2px solid #fff; border-bottom:none; vertical-align:middle; margin-right:2px;"></span> ゴール</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="line-rect" style="padding:0.2rem; font-size:0.65rem; justify-content:center;" title="四角枠"><i class="fa-regular fa-square" style="border: 1.5px dashed #cbd5e1; width: 10px; height: 10px; display: inline-block; vertical-align: middle;"></i> 四角</button>
+                        </div>
+                        <!-- Lines Grid -->
+                        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:0.2rem;">
+                            <button class="btn btn-secondary tool-btn" data-tool="line-move" style="padding:0.2rem; font-size:0.65rem; justify-content:center;" title="移動(人)"><i class="fa-solid fa-arrow-right"></i> 移動</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="line-pass" style="padding:0.2rem; font-size:0.65rem; justify-content:center;" title="パス"><i class="fa-solid fa-arrow-right-long" style="opacity:0.8;"></i> パス</button>
+                            <button class="btn btn-secondary tool-btn" data-tool="line-dribble" style="padding:0.2rem 0.1rem; font-size:0.58rem; letter-spacing:-0.5px; justify-content:center;" title="ドリブル"><i class="fa-solid fa-water"></i> ドリブル</button>
                         </div>
                     </div>
 
-                    <!-- Section 5: Tactical Lines -->
-                    <div class="canvas-toolbar-section">
-                        <div class="canvas-toolbar-section-title"><i class="fa-solid fa-signature"></i> ライン描画</div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.2rem;">
-                            <button class="btn btn-secondary tool-btn" data-tool="line-move" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="移動(人)"><i class="fa-solid fa-arrow-right"></i> 移動</button>
-                            <button class="btn btn-secondary tool-btn" data-tool="line-pass" style="padding:0.2rem; font-size:0.7rem; justify-content:center;" title="パス"><i class="fa-solid fa-arrow-right-long" style="opacity:0.8;"></i> パス</button>
-                            <button class="btn btn-secondary tool-btn" data-tool="line-dribble" style="padding:0.2rem; font-size:0.7rem; justify-content:center; grid-column: span 2;" title="ドリブル"><i class="fa-solid fa-water"></i> ドリブル</button>
-                        </div>
-                    </div>
-
-                    <!-- Section 6: Pitch Layout Options -->
+                    <!-- Section 5: Pitch Layout Options -->
                     <div class="canvas-toolbar-section">
                         <div class="canvas-toolbar-section-title"><i class="fa-solid fa-soccer-ball"></i> ピッチ設定</div>
                         <div style="display:flex; flex-direction:column; gap:0.25rem;">
@@ -462,7 +468,7 @@
                         </div>
                     </div>
 
-                    <!-- Section 7: Animation Controller -->
+                    <!-- Section 6: Animation Controller -->
                     <div class="canvas-toolbar-section">
                         <div class="canvas-toolbar-section-title"><i class="fa-solid fa-film"></i> アニメーション</div>
                         <button class="btn btn-primary" id="anim-add-frame" style="padding:0.25rem; font-size:0.7rem; width:100%; justify-content:center;" title="シーンを記録"><i class="fa-solid fa-plus"></i> 追加 <span id="frame-count" class="badge" style="padding:1px 4px; font-size:0.65rem;">0</span></button>
@@ -473,15 +479,11 @@
                     </div>
                 </div>
 
-                <!-- Section 8: Global Tools (Always at the bottom) -->
+                <!-- Section 7: Global Tools (Always at the bottom) -->
                 <div class="canvas-toolbar-section" style="border-top:1.5px solid var(--surface-border); border-bottom:none; padding-top:0.35rem; padding-bottom:0; margin-bottom:0;">
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.25rem;">
                         <button class="btn btn-secondary" id="tool-undo" style="padding:0.25rem; font-size:0.7rem; justify-content:center;" title="元に戻す (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i> 戻す</button>
                         <button class="btn btn-danger" id="tool-clear" style="padding:0.25rem; font-size:0.7rem; justify-content:center;" title="すべて消去"><i class="fa-solid fa-trash"></i> 消去</button>
-                    </div>
-                    <button class="btn btn-secondary" id="tool-rotate" style="display:none; padding:0.25rem; font-size:0.7rem; justify-content:center; width:100%; margin-top:0.2rem;" title="回転"><i class="fa-solid fa-rotate-right"></i> 回転</button>
-                    <div id="sidebar-action-container" style="display:none; width:100%; flex-shrink:0; margin-top:0.2rem;">
-                        <button class="btn btn-danger" id="tool-delete" style="justify-content:center; padding:0.25rem; font-size:0.7rem; width:100%;" title="選択オブジェクトを削除"><i class="fa-solid fa-trash-can"></i> 選択削除</button>
                     </div>
                 </div>
 

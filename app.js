@@ -2718,13 +2718,15 @@ function undoHistory() {
 function updateCanvasToolbar() {
     const btnDelete = document.getElementById('tool-delete');
     const btnRotate = document.getElementById('tool-rotate');
-    const actionContainer = document.getElementById('sidebar-action-container');
     
-    if (btnDelete) btnDelete.style.display = selectedObject ? 'inline-block' : 'none';
-    if (btnRotate) btnRotate.style.display = (selectedObject && selectedObject.type === 'minigoal') ? 'inline-block' : 'none';
-    
-    if (actionContainer) {
-        actionContainer.style.display = selectedObject ? 'flex' : 'none';
+    if (btnDelete) {
+        btnDelete.disabled = !selectedObject;
+        btnDelete.style.opacity = selectedObject ? '1' : '0.5';
+    }
+    if (btnRotate) {
+        const canRotate = !!(selectedObject && selectedObject.type === 'minigoal');
+        btnRotate.disabled = !canRotate;
+        btnRotate.style.opacity = canRotate ? '1' : '0.5';
     }
 }
 
@@ -2936,13 +2938,13 @@ function initAnimation(params) {
     updateFrameCount();
     drawPitch(objects);
 
-    const tools = ['select', 'red', 'blue', 'green', 'orange', 'ball', 'marker', 'cone', 'ladder', 'minigoal', 'line-rect', 'text', 'line-move', 'line-pass', 'line-dribble'];
+    const tools = ['select', 'player', 'ball', 'marker', 'cone', 'ladder', 'minigoal', 'line-rect', 'text', 'line-move', 'line-pass', 'line-dribble'];
     tools.forEach(tool => {
         const el = document.querySelector(`.tool-btn[data-tool="${tool}"]`);
         if (!el) return;
         
         // Hide non-player tools in formation mode
-        const isPlayerTool = ['select', 'red', 'blue', 'green', 'orange'].includes(tool);
+        const isPlayerTool = ['select', 'player'].includes(tool);
         if (isFormationMode && !isPlayerTool) {
             el.style.display = 'none';
         } else {
@@ -3074,7 +3076,7 @@ function initAnimation(params) {
         if(countEl) countEl.style.display = 'none';
         
         newBtnSave.style.display = 'inline-flex';
-        newBtnSave.innerHTML = '<i class="fa-solid fa-save"></i> フォーメーション保存';
+        newBtnSave.innerHTML = '<i class="fa-solid fa-save"></i> 保存';
         newBtnSave.addEventListener('click', () => {
             const match = state.matches.find(m => m.id === currentMatchId);
             if (match) {
@@ -3104,7 +3106,7 @@ function initAnimation(params) {
         if(countEl) countEl.style.display = 'inline-block';
         
         newBtnSave.style.display = 'inline-flex';
-        newBtnSave.innerHTML = '<i class="fa-solid fa-save"></i> 練習に保存';
+        newBtnSave.innerHTML = '<i class="fa-solid fa-save"></i> 保存';
         newBtnSave.addEventListener('click', () => {
             const practice = state.practices.find(p => p.id === currentPracticeId);
             if (practice) {
@@ -3129,7 +3131,7 @@ function initAnimation(params) {
         if(countEl) countEl.style.display = 'inline-block';
         
         newBtnSave.style.display = 'inline-flex';
-        newBtnSave.innerHTML = '<i class="fa-solid fa-save"></i> ライブラリに保存';
+        newBtnSave.innerHTML = '<i class="fa-solid fa-save"></i> 保存';
         newBtnSave.addEventListener('click', () => {
             const libMenu = state.menuLibrary.find(m => m.id === currentLibraryId);
             if (libMenu) {
@@ -4071,10 +4073,16 @@ function handleMouseDown(e) {
             number = elPlayerNumber ? elPlayerNumber.value : '';
         }
 
-        if(currentTool === 'red') { color = '#f23932'; radius = 14; type = 'player'; }
-        if(currentTool === 'blue') { color = '#3d79d5'; radius = 14; type = 'player'; }
-        if(currentTool === 'green') { color = '#63a84d'; radius = 14; type = 'player'; }
-        if(currentTool === 'orange') { color = '#f09f4d'; radius = 14; type = 'player'; }
+        if(currentTool === 'player') {
+            const colorSelect = document.getElementById('canvas-player-color');
+            const colorVal = colorSelect ? colorSelect.value : 'red';
+            if (colorVal === 'red') color = '#f23932';
+            else if (colorVal === 'blue') color = '#3d79d5';
+            else if (colorVal === 'green') color = '#63a84d';
+            else if (colorVal === 'orange') color = '#f09f4d';
+            radius = 14;
+            type = 'player';
+        }
         if(currentTool === 'ball') { color = '#ffffff'; radius = 8; type = 'ball'; }
         if(currentTool === 'marker') { color = '#f97316'; radius = 8; type = 'marker'; }
         if(currentTool === 'cone') { color = '#facc15'; radius = 10; type = 'cone'; }
