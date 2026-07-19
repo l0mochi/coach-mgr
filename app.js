@@ -836,6 +836,95 @@ function openModal(id) {
     document.getElementById(id).classList.remove('hidden');
 }
 
+function openMatchModal(matchId = null) {
+    document.getElementById('form-match').reset();
+    document.getElementById('match-edit-id').value = '';
+    const goalRecordsList = document.getElementById('goal-records-list');
+    if (goalRecordsList) goalRecordsList.innerHTML = '';
+    const title = document.querySelector('#modal-match h2');
+    if (title) title.textContent = '試合を追加';
+    const select = document.getElementById('match-type');
+    if (select) {
+        select.innerHTML = state.matchTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+    }
+
+    if (matchId) {
+        const m = state.matches.find(match => match.id === matchId);
+        if (m) {
+            document.getElementById('match-edit-id').value = m.id;
+            document.getElementById('match-date').value = m.date;
+            document.getElementById('match-opponent').value = m.opponent;
+            if (select) select.value = m.type;
+            document.getElementById('match-tournament').value = m.tournament || '';
+            
+            if (m.result && m.result.includes('-')) {
+                const scores = m.result.split('-');
+                document.getElementById('match-score-us').value = scores[0];
+                document.getElementById('match-score-them').value = scores[1];
+            } else {
+                document.getElementById('match-score-us').value = '';
+                document.getElementById('match-score-them').value = '';
+            }
+            
+            if (goalRecordsList && m.goalRecords && m.goalRecords.length > 0) {
+                m.goalRecords.forEach(r => {
+                    addGoalRecordRow(r.scorerId, r.assistId);
+                });
+            }
+            
+            let good = '';
+            let improve = '';
+            if (m.comments) {
+                const parts = m.comments.split('【ネクストステップ】');
+                if (parts.length > 1) {
+                    good = parts[0].replace('【ポジティブ】', '').trim();
+                    improve = parts[1].trim();
+                } else {
+                    good = m.comments.replace('【ポジティブ】', '').trim();
+                }
+            }
+            document.getElementById('match-comments-good').value = good;
+            document.getElementById('match-comments-improve').value = improve;
+            
+            if (title) title.textContent = '試合情報を編集';
+        }
+    }
+    
+    // Close match detail modal if open to prevent stack overlay issues
+    const matchDetailModal = document.getElementById('modal-match-detail');
+    if (matchDetailModal) matchDetailModal.classList.add('hidden');
+    
+    openModal('modal-match');
+}
+
+function openPracticeModal(practiceId = null) {
+    document.getElementById('form-practice').reset();
+    document.getElementById('practice-edit-id').value = '';
+    const title = document.getElementById('practice-modal-title');
+    if (title) title.textContent = '練習日を追加';
+    
+    if (practiceId) {
+        const p = state.practices.find(prac => prac.id === practiceId);
+        if (p) {
+            document.getElementById('practice-edit-id').value = p.id;
+            document.getElementById('practice-date').value = p.date;
+            if (title) title.textContent = '練習日情報を編集';
+            
+            let activeIds = p.presentPlayerIds;
+            if (!activeIds && p.attendance) {
+                activeIds = state.players.map(pl => pl.id);
+            } else if (!activeIds) {
+                activeIds = [];
+            }
+            renderPracticeRoster(activeIds);
+        }
+    } else {
+        const allPlayerIds = state.players.map(p => p.id);
+        renderPracticeRoster(allPlayerIds);
+    }
+    openModal('modal-practice');
+}
+
 function initDashboard() {
     // Separate completed and upcoming matches
     const completedMatches = state.matches.filter(m => m.result && /^\d+-\d+$/.test(m.result));
@@ -903,67 +992,51 @@ function initDashboard() {
     if (cardMatches) cardMatches.onclick = () => navigate('matches');
 
     // Button navigations
-    const btnGoPractices = document.getElementById('dash-btn-go-practices');
-    if (btnGoPractices) btnGoPractices.onclick = () => navigate('practices');
-
     const btnGoMatches = document.getElementById('dash-btn-go-matches');
     if (btnGoMatches) btnGoMatches.onclick = () => navigate('matches');
 
     const btnGoPlayers = document.getElementById('dash-btn-go-players');
     if (btnGoPlayers) btnGoPlayers.onclick = () => navigate('players');
 
-    // 3. Render next/most recent practice
-    const practiceContent = document.getElementById('dash-practice-content');
-    if (practiceContent) {
-        if (state.practices.length > 0) {
-            // Sort practices by date descending to find the latest
-            const sortedPractices = [...state.practices].sort((a,b) => new Date(b.date) - new Date(a.date));
-            const p = sortedPractices[0];
-            
-            let menusHtml = p.menus && p.menus.length > 0 ? p.menus.map(menu => `
-                <li class="practice-menu-item" style="margin-bottom: 0.35rem; padding: 0.6rem;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:bold; color:var(--primary); font-size:0.9rem;">${menu.focus}</span>
-                        <button class="btn btn-secondary btn-dash-anim-practice" data-pid="${p.id}" data-mid="${menu.id}" style="padding:0.2rem 0.4rem; font-size:0.75rem;"><i class="fa-solid fa-person-running"></i> 作図</button>
+    // 2. Render Recent completed matches horizontally (latest 3)
+    const matchesContent = document.getElementById('dash-matches-content');
+    if (matchesContent) {
+        if (completedMatches.length > 0) {
+            const sortedMatches = [...completedMatches].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
+            matchesContent.innerHTML = sortedMatches.map(m => {
+                const [us, them] = m.result.split('-').map(Number);
+                let badgeClass = 'badge-sub';
+                let resultLabel = '引き分け';
+                if (us > them) { badgeClass = 'badge-fw'; resultLabel = '勝ち'; }
+                else if (us < them) { badgeClass = 'badge-df'; resultLabel = '負け'; }
+                
+                return `
+                    <div class="glass" style="display:flex; flex-direction:column; justify-content:space-between; padding:0.8rem 1rem; border-radius:12px; cursor:pointer; min-height:100px; transition:var(--transition);" onclick="openMatchDetail(${m.id})">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.4rem;">
+                            <span class="schedule-badge ${us > them ? 'match' : (us < them ? 'practice' : 'practice')}" style="background:${us > them ? 'rgba(34,197,94,0.15)' : (us < them ? 'rgba(239,68,68,0.15)' : 'rgba(100,116,139,0.15)')}; color:${us > them ? '#15803d' : (us < them ? '#b91c1c' : '#475569')};">${resultLabel}</span>
+                            <span style="font-size:0.75rem; color:var(--text-secondary);"><i class="fa-regular fa-calendar"></i> ${m.date}</span>
+                        </div>
+                        <div style="font-size:0.9rem; font-weight:bold; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:0.4rem;">vs ${m.opponent}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:0.75rem; color:var(--text-secondary);">${m.type}</span>
+                            <span style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${m.result}</span>
+                        </div>
                     </div>
-                    ${menu.organize ? `<div style="font-size:0.8rem; color:var(--text-secondary); margin-top:0.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><strong>オーガナイズ:</strong> ${menu.organize.split('\n')[0]}</div>` : ''}
-                </li>
-            `).join('') : '<li class="text-secondary" style="font-style:italic; padding:0.5rem 0; list-style:none;">メニュー登録なし</li>';
-            
-            practiceContent.innerHTML = `
-                <div style="background:rgba(0,0,0,0.02); border:1px solid var(--surface-border); border-radius:12px; padding:1rem; box-sizing:border-box;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-                        <div style="font-size:1.15rem; font-weight:bold;"><i class="fa-regular fa-calendar"></i> ${p.date}</div>
-                        <div class="text-secondary" style="font-size:0.85rem;"><i class="fa-solid fa-users"></i> 出席: ${p.attendance}</div>
-                    </div>
-                    <ul class="practice-card-menu-list" style="max-height: 200px;">
-                        ${menusHtml}
-                    </ul>
-                </div>
-            `;
-            
-            // Add click handlers for menu diagrams
-            document.querySelectorAll('.btn-dash-anim-practice').forEach(btn => {
-                btn.onclick = (e) => {
-                    e.stopPropagation();
-                    const pid = parseInt(e.currentTarget.dataset.pid);
-                    const mid = parseInt(e.currentTarget.dataset.mid);
-                    navigate('animation', { practiceId: pid, menuId: mid });
-                };
-            });
+                `;
+            }).join('');
         } else {
-            practiceContent.innerHTML = `
-                <div class="text-secondary" style="text-align:center; padding:1.5rem; background:rgba(0,0,0,0.02); border-radius:12px; border:1px dashed var(--surface-border);">
-                    練習予定・記録がありません。<br>
-                    <button class="btn btn-primary" id="dash-btn-add-first-practice" style="margin-top:0.8rem; font-size:0.8rem; padding:0.4rem 0.8rem;"><i class="fa-solid fa-plus"></i> 最初の練習日を追加</button>
+            matchesContent.innerHTML = `
+                <div class="text-secondary" style="text-align:center; padding:1.5rem; background:rgba(0,0,0,0.02); border-radius:12px; border:1px dashed var(--surface-border); grid-column: 1 / -1; width: 100%;">
+                    試合記録がありません。<br>
+                    <button class="btn btn-primary" id="dash-btn-add-first-match" style="margin-top:0.8rem; font-size:0.8rem; padding:0.4rem 0.8rem;"><i class="fa-solid fa-plus"></i> 最初の試合を記録</button>
                 </div>
             `;
-            const btnAddFirst = document.getElementById('dash-btn-add-first-practice');
+            const btnAddFirst = document.getElementById('dash-btn-add-first-match');
             if (btnAddFirst) {
                 btnAddFirst.onclick = () => {
-                    navigate('practices');
+                    navigate('matches');
                     setTimeout(() => {
-                        const btnAdd = document.getElementById('btn-add-practice');
+                        const btnAdd = document.getElementById('btn-add-match');
                         if (btnAdd) btnAdd.click();
                     }, 50);
                 };
@@ -971,31 +1044,7 @@ function initDashboard() {
         }
     }
 
-    // 3. Render upcoming matches (latest 3)
-    const upcomingMatchesCard = document.getElementById('dash-upcoming-matches-card');
-    const upcomingMatchesContent = document.getElementById('dash-upcoming-matches-content');
-    if (upcomingMatchesCard && upcomingMatchesContent) {
-        if (upcomingMatches.length > 0) {
-            upcomingMatchesCard.style.display = 'block';
-            const sortedUpcoming = [...upcomingMatches].sort((a,b) => new Date(a.date) - new Date(b.date)).slice(0, 3);
-            upcomingMatchesContent.innerHTML = sortedUpcoming.map(m => `
-                <div class="feedback-box" style="display:flex; justify-content:space-between; align-items:center; padding:0.6rem 0.8rem; cursor:pointer;" onclick="openMatchDetail(${m.id})">
-                    <div style="display:flex; align-items:center; gap:0.6rem;">
-                        <span class="player-position badge-sub" style="width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-size:0.75rem; font-weight:bold; padding:0;"><i class="fa-solid fa-clock"></i></span>
-                        <div>
-                            <strong style="font-size:0.9rem;">vs ${m.opponent}</strong>
-                            <div style="font-size:0.75rem; color:var(--text-secondary);"><i class="fa-regular fa-calendar"></i> ${m.date} | ${m.type}${m.tournament ? ` (${m.tournament})` : ''}</div>
-                        </div>
-                    </div>
-                    <div style="font-size:0.85rem; color:var(--text-secondary); font-weight:bold; background:rgba(0,0,0,0.05); padding:0.2rem 0.5rem; border-radius:4px;">予定</div>
-                </div>
-            `).join('');
-        } else {
-            upcomingMatchesCard.style.display = 'none';
-        }
-    }
-
-    // 4. Render Form Guide & Recent completed matches (latest 3)
+    // Render Form Guide (latest 5 completed matches)
     const formGuideContainer = document.getElementById('dash-form-guide-container');
     const formGuideEl = document.getElementById('dash-db-form-guide');
     if (formGuideContainer && formGuideEl) {
@@ -1017,51 +1066,202 @@ function initDashboard() {
         }
     }
 
-    const matchesContent = document.getElementById('dash-matches-content');
-    if (matchesContent) {
-        if (completedMatches.length > 0) {
-            const sortedMatches = [...completedMatches].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
-            matchesContent.innerHTML = sortedMatches.map(m => {
-                const [us, them] = m.result.split('-').map(Number);
-                let badgeClass = 'badge-sub';
-                let resultLabel = 'D';
-                if (us > them) { badgeClass = 'badge-fw'; resultLabel = 'W'; }
-                else if (us < them) { badgeClass = 'badge-df'; resultLabel = 'L'; }
-                
-                return `
-                    <div class="feedback-box" style="display:flex; justify-content:space-between; align-items:center; padding:0.6rem 0.8rem; cursor:pointer;" onclick="openMatchDetail(${m.id})">
-                        <div style="display:flex; align-items:center; gap:0.6rem;">
-                            <span class="player-position ${badgeClass}" style="width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-size:0.75rem; font-weight:bold; padding:0;">${resultLabel}</span>
-                            <div>
-                                <strong style="font-size:0.9rem;">vs ${m.opponent}</strong>
-                                <div style="font-size:0.75rem; color:var(--text-secondary);"><i class="fa-regular fa-calendar"></i> ${m.date} | ${m.type}${m.tournament ? ` (${m.tournament})` : ''}</div>
+    // 3. Chronological Schedule List (Bottom Card)
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+    const allEvents = [];
+    
+    // Merge practices
+    state.practices.forEach(p => {
+        allEvents.push({
+            type: 'practice',
+            date: p.date,
+            id: p.id,
+            title: '練習日',
+            desc: p.menus && p.menus.length > 0 ? p.menus.map(m => m.focus).join(', ') : 'メニュー未登録',
+            attendance: p.presentPlayerIds ? `${p.presentPlayerIds.length}/${state.players.length}` : p.attendance,
+            raw: p
+        });
+    });
+    
+    // Merge matches
+    state.matches.forEach(m => {
+        const hasResult = m.result && /^\d+-\d+$/.test(m.result);
+        allEvents.push({
+            type: 'match',
+            date: m.date,
+            id: m.id,
+            title: `vs ${m.opponent}`,
+            desc: `${m.type}${m.tournament ? ` (${m.tournament})` : ''}`,
+            hasResult: hasResult,
+            result: m.result,
+            raw: m
+        });
+    });
+
+    // Filter by date relative to today
+    const upcomingEvents = allEvents.filter(e => e.date >= todayStr);
+    const pastEvents = allEvents.filter(e => e.date < todayStr);
+
+    // Sort
+    upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date)); // Closest first
+    pastEvents.sort((a, b) => new Date(b.date) - new Date(a.date)); // Most recent first
+
+    // Render Upcoming Schedules
+    const upcomingContent = document.getElementById('dash-upcoming-schedule-content');
+    if (upcomingContent) {
+        if (upcomingEvents.length > 0) {
+            upcomingContent.innerHTML = upcomingEvents.map(e => {
+                if (e.type === 'practice') {
+                    return `
+                        <div class="schedule-item">
+                            <div class="schedule-item-info">
+                                <div class="schedule-item-icon-box practice">
+                                    <i class="fa-solid fa-calendar-check"></i>
+                                </div>
+                                <div class="schedule-item-details">
+                                    <div class="schedule-item-meta">
+                                        <span class="schedule-badge practice">練習</span>
+                                        <span>${e.date}</span>
+                                    </div>
+                                    <div class="schedule-item-title">${e.title}</div>
+                                    <div class="schedule-item-desc">${e.desc}</div>
+                                </div>
+                            </div>
+                            <div class="schedule-item-actions">
+                                <button class="btn btn-secondary btn-sm btn-dash-edit-prac" data-id="${e.id}" style="padding:0.25rem 0.5rem; font-size:0.75rem; display:flex; align-items:center; gap:0.2rem;"><i class="fa-solid fa-pen"></i> 編集</button>
+                                <button class="btn btn-secondary btn-sm" onclick="navigate('practices')" style="padding:0.25rem 0.5rem; font-size:0.75rem; display:flex; align-items:center; gap:0.2rem;"><i class="fa-solid fa-chevron-right"></i> 詳細</button>
                             </div>
                         </div>
-                        <div style="font-size:1.1rem; font-weight:bold; color:var(--primary);">${m.result}</div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    return `
+                        <div class="schedule-item">
+                            <div class="schedule-item-info">
+                                <div class="schedule-item-icon-box match">
+                                    <i class="fa-solid fa-trophy"></i>
+                                </div>
+                                <div class="schedule-item-details">
+                                    <div class="schedule-item-meta">
+                                        <span class="schedule-badge match">試合予定</span>
+                                        <span>${e.date}</span>
+                                    </div>
+                                    <div class="schedule-item-title">${e.title}</div>
+                                    <div class="schedule-item-desc">${e.desc}</div>
+                                </div>
+                            </div>
+                            <div class="schedule-item-actions">
+                                <button class="btn btn-primary btn-sm btn-dash-score-match" data-id="${e.id}" style="padding:0.25rem 0.5rem; font-size:0.75rem; display:flex; align-items:center; gap:0.2rem;"><i class="fa-solid fa-square-poll-horizontal"></i> 結果入力</button>
+                                <button class="btn btn-secondary btn-sm btn-dash-edit-match" data-id="${e.id}" style="padding:0.25rem 0.5rem; font-size:0.75rem; display:flex; align-items:center; gap:0.2rem;"><i class="fa-solid fa-pen"></i> 編集</button>
+                            </div>
+                        </div>
+                    `;
+                }
             }).join('');
         } else {
-            matchesContent.innerHTML = `
-                <div class="text-secondary" style="text-align:center; padding:1.5rem; background:rgba(0,0,0,0.02); border-radius:12px; border:1px dashed var(--surface-border);">
-                    試合記録がありません。<br>
-                    <button class="btn btn-primary" id="dash-btn-add-first-match" style="margin-top:0.8rem; font-size:0.8rem; padding:0.4rem 0.8rem;"><i class="fa-solid fa-plus"></i> 最初の試合を記録</button>
+            upcomingContent.innerHTML = `
+                <div style="text-align:center; padding:2rem 1rem; color:var(--text-secondary); font-size:0.85rem; font-style:italic;">
+                    今後の予定はありません。
                 </div>
             `;
-            const btnAddFirst = document.getElementById('dash-btn-add-first-match');
-            if (btnAddFirst) {
-                btnAddFirst.onclick = () => {
-                    navigate('matches');
-                    setTimeout(() => {
-                        const btnAdd = document.getElementById('btn-add-match');
-                        if (btnAdd) btnAdd.click();
-                    }, 50);
-                };
-            }
         }
     }
 
-    // 5. Render Top Scorers and Assists lists (Top 3)
+    // Render Past History (latest 3 events)
+    const pastContent = document.getElementById('dash-past-schedule-content');
+    if (pastContent) {
+        const recentPast = pastEvents.slice(0, 3);
+        if (recentPast.length > 0) {
+            pastContent.innerHTML = recentPast.map(e => {
+                if (e.type === 'practice') {
+                    return `
+                        <div class="schedule-item" style="opacity:0.95;">
+                            <div class="schedule-item-info">
+                                <div class="schedule-item-icon-box practice" style="opacity:0.8;">
+                                    <i class="fa-solid fa-calendar-check"></i>
+                                </div>
+                                <div class="schedule-item-details">
+                                    <div class="schedule-item-meta">
+                                        <span class="schedule-badge practice" style="opacity:0.8;">練習日履歴</span>
+                                        <span>${e.date}</span>
+                                    </div>
+                                    <div class="schedule-item-title" style="color:var(--text-secondary);">${e.title}</div>
+                                    <div class="schedule-item-desc">${e.desc}</div>
+                                </div>
+                            </div>
+                            <div class="schedule-item-actions">
+                                <span style="font-size:0.75rem; color:var(--text-secondary); margin-right:0.3rem;"><i class="fa-solid fa-users"></i> ${e.attendance}</span>
+                                <button class="btn btn-secondary btn-sm" onclick="navigate('practices')" style="padding:0.25rem 0.5rem; font-size:0.75rem; display:flex; align-items:center; gap:0.2rem;"><i class="fa-solid fa-chevron-right"></i> 詳細</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const resultText = e.hasResult ? `<span style="font-weight:bold; color:var(--primary); font-size:0.85rem;">${e.result}</span>` : `<span style="color:#f59e0b; font-size:0.75rem; font-weight:bold;">結果未入力</span>`;
+                    const actionBtn = e.hasResult 
+                        ? `<button class="btn btn-secondary btn-sm" onclick="openMatchDetail(${e.id})" style="padding:0.25rem 0.5rem; font-size:0.75rem; display:flex; align-items:center; gap:0.2rem;"><i class="fa-solid fa-circle-info"></i> 詳細</button>`
+                        : `<button class="btn btn-primary btn-sm btn-dash-score-match" data-id="${e.id}" style="padding:0.25rem 0.5rem; font-size:0.75rem; display:flex; align-items:center; gap:0.2rem;"><i class="fa-solid fa-square-poll-horizontal"></i> 結果入力</button>`;
+                    
+                    return `
+                        <div class="schedule-item" style="opacity:0.95;">
+                            <div class="schedule-item-info">
+                                <div class="schedule-item-icon-box match" style="opacity:0.8;">
+                                    <i class="fa-solid fa-trophy"></i>
+                                </div>
+                                <div class="schedule-item-details">
+                                    <div class="schedule-item-meta">
+                                        <span class="schedule-badge match" style="opacity:0.8;">試合履歴</span>
+                                        <span>${e.date}</span>
+                                    </div>
+                                    <div class="schedule-item-title" style="color:var(--text-secondary);">${e.title}</div>
+                                    <div class="schedule-item-desc">${e.desc}</div>
+                                </div>
+                            </div>
+                            <div class="schedule-item-actions">
+                                <div style="margin-right:0.4rem; text-align:right;">${resultText}</div>
+                                ${actionBtn}
+                           </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+        } else {
+            pastContent.innerHTML = `
+                <div style="text-align:center; padding:2rem 1rem; color:var(--text-secondary); font-size:0.85rem; font-style:italic;">
+                    過去の履歴はありません。
+                </div>
+            `;
+        }
+    }
+
+    // Bind schedule buttons
+    const btnDashAddPrac = document.getElementById('dash-btn-add-practice');
+    if (btnDashAddPrac) btnDashAddPrac.onclick = () => openPracticeModal();
+    
+    const btnDashAddMatch = document.getElementById('dash-btn-add-match');
+    if (btnDashAddMatch) btnDashAddMatch.onclick = () => openMatchModal();
+
+    // Bind item specific actions
+    document.querySelectorAll('.btn-dash-edit-prac').forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            openPracticeModal(parseInt(btn.dataset.id));
+        };
+    });
+    document.querySelectorAll('.btn-dash-edit-match').forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            openMatchModal(parseInt(btn.dataset.id));
+        };
+    });
+    document.querySelectorAll('.btn-dash-score-match').forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            openMatchModal(parseInt(btn.dataset.id));
+        };
+    });
+
+    // 4. Render Top Scorers and Assists lists (Top 3)
     const scorerCounts = {};
     const assistCounts = {};
     state.matches.forEach(m => {
@@ -1300,15 +1500,7 @@ function initMatches() {
 
     // Match Modal
     document.getElementById('btn-add-match').addEventListener('click', () => {
-        document.getElementById('form-match').reset();
-        document.getElementById('match-edit-id').value = '';
-        const goalRecordsList = document.getElementById('goal-records-list');
-        if (goalRecordsList) goalRecordsList.innerHTML = '';
-        const title = document.querySelector('#modal-match h2');
-        if (title) title.textContent = '試合を追加';
-        const select = document.getElementById('match-type');
-        select.innerHTML = state.matchTypes.map(t => `<option value="${t}">${t}</option>`).join('');
-        openModal('modal-match');
+        openMatchModal();
     });
 
     document.querySelectorAll('.btn-detail-match').forEach(btn => {
@@ -1533,62 +1725,10 @@ function openMatchDetail(id) {
             openModal('modal-formation');
         };
 
-        // Setup Edit Match details click handler
         const btnEditMatch = document.getElementById('btn-edit-match');
         if (btnEditMatch) {
             btnEditMatch.onclick = () => {
-                document.getElementById('match-edit-id').value = m.id;
-                document.getElementById('match-date').value = m.date;
-                document.getElementById('match-opponent').value = m.opponent;
-                
-                const select = document.getElementById('match-type');
-                select.innerHTML = state.matchTypes.map(t => `<option value="${t}">${t}</option>`).join('');
-                select.value = m.type;
-                
-                document.getElementById('match-tournament').value = m.tournament || '';
-                
-                if (m.result && m.result.includes('-')) {
-                    const scores = m.result.split('-');
-                    document.getElementById('match-score-us').value = scores[0];
-                    document.getElementById('match-score-them').value = scores[1];
-                } else {
-                    document.getElementById('match-score-us').value = '';
-                    document.getElementById('match-score-them').value = '';
-                }
-                
-                // Clear and repopulate goal records list
-                const goalRecordsList = document.getElementById('goal-records-list');
-                if (goalRecordsList) {
-                    goalRecordsList.innerHTML = '';
-                    if (m.goalRecords && m.goalRecords.length > 0) {
-                        m.goalRecords.forEach(r => {
-                            addGoalRecordRow(r.scorerId, r.assistId);
-                        });
-                    }
-                }
-                
-                // Parse comments
-                let good = '';
-                let improve = '';
-                if (m.comments) {
-                    const parts = m.comments.split('【ネクストステップ】');
-                    if (parts.length > 1) {
-                        good = parts[0].replace('【ポジティブ】', '').trim();
-                        improve = parts[1].trim();
-                    } else {
-                        good = m.comments.replace('【ポジティブ】', '').trim();
-                    }
-                }
-                document.getElementById('match-comments-good').value = good;
-                document.getElementById('match-comments-improve').value = improve;
-                
-                // Modal swap
-                document.getElementById('modal-match-detail').classList.add('hidden');
-                
-                const title = document.querySelector('#modal-match h2');
-                if (title) title.textContent = '試合情報を編集';
-                
-                openModal('modal-match');
+                openMatchModal(m.id);
             };
         }
 
@@ -1773,35 +1913,13 @@ function initPractices() {
     practiceList.innerHTML = html;
 
     document.getElementById('btn-add-practice').addEventListener('click', () => {
-        document.getElementById('form-practice').reset();
-        document.getElementById('practice-edit-id').value = '';
-        const title = document.getElementById('practice-modal-title');
-        if (title) title.textContent = '練習日を追加';
-        const allPlayerIds = state.players.map(p => p.id);
-        renderPracticeRoster(allPlayerIds);
-        openModal('modal-practice');
+        openPracticeModal();
     });
 
     document.querySelectorAll('.btn-edit-practice').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const id = parseInt(e.currentTarget.dataset.id);
-            const p = state.practices.find(prac => prac.id === id);
-            if (p) {
-                document.getElementById('practice-edit-id').value = p.id;
-                document.getElementById('practice-date').value = p.date;
-                const title = document.getElementById('practice-modal-title');
-                if (title) title.textContent = '練習日情報を編集';
-                
-                let activeIds = p.presentPlayerIds;
-                if (!activeIds && p.attendance) {
-                    activeIds = state.players.map(pl => pl.id);
-                } else if (!activeIds) {
-                    activeIds = [];
-                }
-                
-                renderPracticeRoster(activeIds);
-                openModal('modal-practice');
-            }
+            openPracticeModal(id);
         });
     });
 

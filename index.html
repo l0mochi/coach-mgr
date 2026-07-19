@@ -36,100 +36,110 @@
                 </div>
             </header>
 
-            <div id="view-container" class="view-container">
-                <!-- Views will be dynamically injected here -->
-            </div>
-        </main>
-    </div>
+            <div id="view-container" class="view-container"></div>
 
-    <!-- Templates -->
+        </main>
+
+    </div><!-- /#app -->
+
+    <!-- ===== Templates (hidden, cloned on navigation) ===== -->
+
     <template id="tpl-dashboard">
-        <!-- Top Row: stats & record side-by-side -->
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-            <!-- Stats card 1: W-L-D Record -->
-            <div class="card stat-card" style="cursor: pointer; height: auto; min-height: 100px; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 0.8rem 1.2rem;" id="dash-card-matches">
-                <div style="display: flex; align-items: center; width: 100%;">
-                    <div class="stat-icon"><i class="fa-solid fa-trophy"></i></div>
-                    <div class="stat-info">
-                        <h3>通算成績 (全体)</h3>
-                        <p id="dash-db-record">0勝 0敗 0分</p>
-                        <div class="progress-bar-container" title="勝率">
-                            <div class="progress-bar-fill" id="dash-db-record-bar"></div>
+        <div class="dashboard-grid-container">
+
+            <!-- Left Column: Stats Card + Recent Match Results -->
+            <div class="dashboard-left-column">
+
+                <!-- Card 1: W-L-D Stats + Team Leaders -->
+                <div class="card" style="padding: 1rem 1.2rem; margin-bottom: 0.75rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; border-bottom:1px solid var(--surface-border); padding-bottom:0.35rem;">
+                        <h3 style="font-size:0.95rem; color:var(--primary); font-weight:600; margin:0;"><i class="fa-solid fa-chart-line"></i> チーム成績・リーダー</h3>
+                    </div>
+                    <div class="dashboard-layout-row" style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; align-items: start;">
+                        <!-- Left: W-L-D Record -->
+                        <div class="glass" style="cursor:pointer; display:flex; flex-direction:column; padding:0.7rem 0.9rem; border-radius:10px;" id="dash-card-matches">
+                            <div style="display:flex; align-items:center; gap:0.5rem; width:100%;">
+                                <div class="stat-icon" style="font-size:1.1rem; width:28px; height:28px; flex-shrink:0;"><i class="fa-solid fa-trophy"></i></div>
+                                <div style="flex:1; min-width:0;">
+                                    <h4 style="font-size:0.75rem; color:var(--text-secondary); margin:0 0 0.1rem 0;">通算成績</h4>
+                                    <p id="dash-db-record" style="font-size:1rem; font-weight:bold; margin:0 0 0.2rem 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">0勝 0敗 0分</p>
+                                    <div class="progress-bar-container" style="height:5px; margin:0;"><div class="progress-bar-fill" id="dash-db-record-bar"></div></div>
+                                </div>
+                            </div>
+                            <div id="dash-db-match-types" style="margin-top:0.5rem; border-top:1px solid rgba(0,0,0,0.06); padding-top:0.3rem; font-size:0.72rem; display:flex; flex-direction:column; gap:0.15rem; color:var(--text-secondary);">
+                            </div>
+                        </div>
+
+                        <!-- Right: Team Leaders -->
+                        <div class="glass" style="display:flex; flex-direction:column; padding:0.7rem 0.9rem; border-radius:10px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; border-bottom:1px solid rgba(0,0,0,0.06); padding-bottom:0.2rem;">
+                                <h4 style="font-size:0.75rem; color:var(--text-secondary); font-weight:600; margin:0;"><i class="fa-solid fa-star" style="color:var(--primary);"></i> リーダー</h4>
+                                <button class="btn btn-secondary" id="dash-btn-go-players" style="padding:0.08rem 0.3rem; font-size:0.62rem; height:16px; line-height:1;"><i class="fa-solid fa-chevron-right"></i> 選手</button>
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.4rem;">
+                                <div>
+                                    <h5 style="font-size:0.68rem; color:var(--text-secondary); margin:0 0 0.15rem 0; font-weight:600;"><i class="fa-solid fa-fire" style="color:#ef4444;"></i> 得点</h5>
+                                    <ol id="dash-top-scorers" style="padding-left:0.9rem; font-size:0.72rem; line-height:1.3; margin:0; color:var(--text-primary);"></ol>
+                                </div>
+                                <div>
+                                    <h5 style="font-size:0.68rem; color:var(--text-secondary); margin:0 0 0.15rem 0; font-weight:600;"><i class="fa-solid fa-shoe-prints" style="color:#22c55e;"></i> アシスト</h5>
+                                    <ol id="dash-top-assists" style="padding-left:0.9rem; font-size:0.72rem; line-height:1.3; margin:0; color:var(--text-primary);"></ol>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div id="dash-db-match-types" style="margin-top: 0.6rem; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 0.5rem; font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; color: var(--text-secondary);">
-                    <!-- Dynamically populated match type stats -->
-                </div>
-            </div>
 
-            <!-- Section: Top Scorers / Star Players (Stats) -->
-            <div class="card" style="height: 100%; display: flex; flex-direction: column; justify-content: flex-start; padding: 0.8rem 1.2rem;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem; border-bottom:1px solid var(--surface-border); padding-bottom:0.3rem; width: 100%;">
-                    <h3 style="font-size:0.85rem; color:var(--text-secondary); font-weight:600; margin:0;"><i class="fa-solid fa-star" style="color:var(--primary);"></i> チームリーダー (スタッツ)</h3>
-                    <button class="btn btn-secondary" id="dash-btn-go-players" style="padding:0.15rem 0.4rem; font-size:0.7rem;"><i class="fa-solid fa-chevron-right"></i> 選手一覧</button>
-                </div>
-                
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; flex:1;">
-                    <div class="detail-box">
-                        <h4 style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.3rem; margin-top:0;"><i class="fa-solid fa-fire" style="color:#ef4444;"></i> 得点王 (Top 3)</h4>
-                        <ol id="dash-top-scorers" style="padding-left:1.2rem; font-size:0.8rem; line-height:1.4; margin:0;">
-                            <!-- Injected -->
-                        </ol>
+                <!-- Card 2: Recent Match Results -->
+                <div class="card" style="padding: 1rem 1.2rem; margin-bottom: 0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; border-bottom:1px solid var(--surface-border); padding-bottom:0.35rem;">
+                        <h3 style="font-size:0.95rem; color:var(--primary); font-weight:600; margin:0;"><i class="fa-solid fa-trophy"></i> 直近の試合結果</h3>
+                        <div style="display:flex; align-items:center; gap:0.4rem;">
+                            <div id="dash-form-guide-container" style="display:none; align-items:center; gap:0.25rem;">
+                                <span style="font-size:0.68rem; color:var(--text-secondary);">直近5:</span>
+                                <div id="dash-db-form-guide" style="display:flex; gap:0.2rem;"></div>
+                            </div>
+                            <button class="btn btn-secondary" id="dash-btn-go-matches" style="padding:0.1rem 0.35rem; font-size:0.68rem; height:20px;"><i class="fa-solid fa-chevron-right"></i> 一覧</button>
+                        </div>
                     </div>
-                    <div class="detail-box">
-                        <h4 style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.3rem; margin-top:0;"><span style="display:inline-block; transform:rotate(45deg); color:#22c55e;"><i class="fa-solid fa-shoe-prints"></i></span> アシスト王 (Top 3)</h4>
-                        <ol id="dash-top-assists" style="padding-left:1.2rem; font-size:0.8rem; line-height:1.4; margin:0;">
-                            <!-- Injected -->
-                        </ol>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Bottom Row: Schedules & Match Results -->
-        <div class="dashboard-layout-row" style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
-            <!-- Left Column: Practice & Match Schedules -->
-            <div style="display:flex; flex-direction:column; gap:1.5rem;">
-                <!-- Section: Next Practice -->
-                <div class="card" id="dash-next-practice-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--surface-border); padding-bottom:0.5rem;">
-                        <h3 style="font-size:1.1rem; color:var(--primary); font-weight:600;"><i class="fa-solid fa-calendar-day"></i> 直近・次の練習予定</h3>
-                        <button class="btn btn-secondary" id="dash-btn-go-practices" style="padding:0.2rem 0.5rem; font-size:0.75rem;"><i class="fa-solid fa-chevron-right"></i> 練習一覧</button>
-                    </div>
-                    <div id="dash-practice-content">
-                        <!-- Injected -->
-                    </div>
-                </div>
-
-                <!-- Section: Upcoming Matches -->
-                <div class="card" id="dash-upcoming-matches-card" style="display:none;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--surface-border); padding-bottom:0.5rem;">
-                        <h3 style="font-size:1.1rem; color:var(--primary); font-weight:600;"><i class="fa-solid fa-calendar-days"></i> 今後の試合予定</h3>
-                    </div>
-                    <div id="dash-upcoming-matches-content" style="display:flex; flex-direction:column; gap:0.8rem;">
-                        <!-- Injected -->
+                    <div id="dash-matches-content" class="dash-horizontal-grid" style="gap:0.5rem;">
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column: Recent Match Results -->
-            <div style="display:flex; flex-direction:column; gap:1.5rem;">
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--surface-border); padding-bottom:0.5rem;">
-                        <h3 style="font-size:1.1rem; color:var(--primary); font-weight:600;"><i class="fa-solid fa-trophy"></i> 直近の試合結果 (最新3試合)</h3>
-                        <button class="btn btn-secondary" id="dash-btn-go-matches" style="padding:0.2rem 0.5rem; font-size:0.75rem;"><i class="fa-solid fa-chevron-right"></i> 試合一覧</button>
+            <!-- Right Column: Schedule Manager -->
+            <div class="dashboard-right-column">
+                <div class="card" style="padding: 1rem 1.2rem; height:100%; display:flex; flex-direction:column; box-sizing:border-box;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--surface-border); padding-bottom:0.35rem; margin-bottom:0.7rem; flex-shrink:0;">
+                        <h3 style="font-size:0.95rem; color:var(--primary); font-weight:600; margin:0;"><i class="fa-solid fa-calendar-days"></i> 練習・試合予定</h3>
+                        <div style="display:flex; gap:0.3rem;">
+                            <button class="btn btn-primary" id="dash-btn-add-practice" style="padding:0.1rem 0.4rem; font-size:0.68rem; height:22px;"><i class="fa-solid fa-calendar-plus"></i> 練習</button>
+                            <button class="btn btn-primary" id="dash-btn-add-match" style="padding:0.1rem 0.4rem; font-size:0.68rem; height:22px;"><i class="fa-solid fa-trophy"></i> 試合</button>
+                        </div>
                     </div>
-                    <!-- Form Guide Container -->
-                    <div id="dash-form-guide-container" style="display:none; align-items:center; gap:0.5rem; margin-bottom:1rem; background:rgba(0,0,0,0.02); padding:0.5rem 0.8rem; border-radius:8px; border:1px solid var(--surface-border);">
-                        <span style="font-size:0.8rem; font-weight:bold; color:var(--text-secondary);">直近5試合 of 調子:</span>
-                        <div id="dash-db-form-guide" style="display:flex; gap:0.35rem; align-items:center;"></div>
-                    </div>
-                    <div id="dash-matches-content" style="display:flex; flex-direction:column; gap:0.8rem;">
-                        <!-- Injected -->
+
+                    <div style="display:flex; flex-direction:column; gap:0.7rem; flex:1; min-height:0;">
+                        <!-- Upcoming -->
+                        <div class="glass" style="padding:0.7rem 0.8rem; border-radius:10px; display:flex; flex-direction:column; flex:1; min-height:0;">
+                            <h4 style="font-size:0.8rem; color:var(--primary); font-weight:600; border-bottom:1px solid var(--surface-border); padding-bottom:0.2rem; margin:0 0 0.4rem 0; flex-shrink:0;">
+                                <i class="fa-solid fa-hourglass-half"></i> 今後の予定
+                            </h4>
+                            <div id="dash-upcoming-schedule-content" style="display:flex; flex-direction:column; gap:0.4rem; overflow-y:auto; flex:1;">
+                            </div>
+                        </div>
+
+                        <!-- Past History -->
+                        <div class="glass" style="padding:0.7rem 0.8rem; border-radius:10px; display:flex; flex-direction:column; flex:1; min-height:0;">
+                            <h4 style="font-size:0.8rem; color:var(--text-secondary); font-weight:600; border-bottom:1px solid var(--surface-border); padding-bottom:0.2rem; margin:0 0 0.4rem 0; flex-shrink:0;">
+                                <i class="fa-solid fa-clock-rotate-left"></i> 直近の履歴 (3件)
+                            </h4>
+                            <div id="dash-past-schedule-content" style="display:flex; flex-direction:column; gap:0.4rem; overflow-y:auto; flex:1;">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
         </div>
     </template>
 
@@ -1025,6 +1035,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=4"></script>
 </body>
 </html>

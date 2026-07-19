@@ -1443,3 +1443,167 @@ summary {
     pointer-events: none;
 }
 
+/* Restructured Dashboard Styles */
+.dash-horizontal-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .dash-horizontal-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.schedule-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    transition: var(--transition);
+}
+
+.schedule-item:hover {
+    background: rgba(0, 0, 0, 0.04);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.schedule-item-info {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.schedule-item-icon-box {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.schedule-item-icon-box.practice {
+    background: rgba(242, 57, 50, 0.1);
+    color: var(--primary);
+}
+
+.schedule-item-icon-box.match {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.schedule-item-details {
+    min-width: 0;
+    flex: 1;
+}
+
+.schedule-item-meta {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.15rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.schedule-item-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.schedule-item-desc {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 0.1rem;
+}
+
+.schedule-item-actions {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.schedule-badge {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.schedule-badge.practice {
+    background: rgba(242, 57, 50, 0.15);
+    color: var(--primary);
+}
+
+.schedule-badge.match {
+    background: rgba(34, 197, 94, 0.15);
+    color: #15803d;
+}
+.dashboard-grid-container {
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    gap: 1rem;
+    align-items: stretch;
+    height: auto;
+}
+
+.dashboard-left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.dashboard-right-column {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Make lists within schedule columns scrollable */
+#dash-upcoming-schedule-content,
+#dash-past-schedule-content {
+    max-height: 190px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* Scrollbar styles for schedule contents to look premium */
+#dash-upcoming-schedule-content::-webkit-scrollbar,
+#dash-past-schedule-content::-webkit-scrollbar {
+    width: 4px;
+}
+#dash-upcoming-schedule-content::-webkit-scrollbar-track,
+#dash-past-schedule-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+#dash-upcoming-schedule-content::-webkit-scrollbar-thumb,
+#dash-past-schedule-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 2px;
+}
+
+/* Responsive adjustment for dashboard grid */
+@media (max-width: 1024px) {
+    .dashboard-grid-container {
+        grid-template-columns: 1fr;
+    }
+}
