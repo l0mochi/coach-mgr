@@ -24,7 +24,8 @@ let state = {
     menuCategories: ['ウォーミングアップ', 'パス＆コントロール', 'ポゼッション', 'シュート', '守備', 'ゲーム', 'その他'],
     skillMetrics: ['シュート', 'パス', 'ドリブル', '守備', 'フィジカル', 'メンタル'],
     positions: ['FW', 'MF', 'DF', 'GK'],
-    teamInfo: { name: 'My Team', color: '#f23932' },
+    teamInfo: { name: 'My Team', color: '#f23932', passcode: '1234' },
+    currentUserRole: 'parent',
     customFormations: [
         {
             name: '3-3-1',
@@ -105,7 +106,8 @@ function loadData() {
         state.menuCategories = parsed.menuCategories || ['ウォーミングアップ', 'パス＆コントロール', 'ポゼッション', 'シュート', '守備', 'ゲーム', 'その他'];
         state.skillMetrics = parsed.skillMetrics || ['シュート', 'パス', 'ドリブル', '守備', 'フィジカル', 'メンタル'];
         state.positions = parsed.positions || ['FW', 'MF', 'DF', 'GK'];
-        state.teamInfo = parsed.teamInfo || { name: 'My Team', color: '#f23932' };
+        state.teamInfo = parsed.teamInfo || { name: 'My Team', color: '#f23932', passcode: '1234' };
+        if (!state.teamInfo.passcode) state.teamInfo.passcode = '1234';
         state.customFormations = parsed.customFormations || state.customFormations;
 
         state.menuLibrary = parsed.menuLibrary || [
@@ -282,6 +284,125 @@ function setupEventListeners() {
     menuToggle.addEventListener('click', () => {
         sidebar.classList.toggle('open');
     });
+
+    const teamBrand = document.getElementById('sidebar-team-brand');
+    if (teamBrand) {
+        teamBrand.addEventListener('click', () => {
+            navigate('dashboard');
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('open');
+            }
+        });
+    }
+
+    // Role Toggle logic
+    const btnToggleRole = document.getElementById('btn-toggle-role');
+    const modalPasscode = document.getElementById('modal-coach-passcode');
+    const formPasscode = document.getElementById('form-coach-passcode');
+    const inputPasscode = document.getElementById('input-coach-passcode');
+    const errorMsg = document.getElementById('passcode-error-msg');
+
+    if (btnToggleRole) {
+        btnToggleRole.addEventListener('click', () => {
+            if (state.currentUserRole === 'coach') {
+                // Switch to parent mode directly
+                state.currentUserRole = 'parent';
+                updateRoleUI();
+                showToast('保護者モード（閲覧専用）に切り替えました');
+            } else {
+                // Prompt passcode to switch to coach mode
+                if (inputPasscode) inputPasscode.value = '';
+                if (errorMsg) errorMsg.style.display = 'none';
+                if (modalPasscode) modalPasscode.classList.remove('hidden');
+            }
+        });
+    }
+
+    if (formPasscode) {
+        formPasscode.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const val = inputPasscode ? inputPasscode.value.trim() : '';
+            const targetPass = (state.teamInfo && state.teamInfo.passcode) ? state.teamInfo.passcode : '1234';
+
+            if (val === targetPass) {
+                state.currentUserRole = 'coach';
+                if (modalPasscode) modalPasscode.classList.add('hidden');
+                updateRoleUI();
+                showToast('コーチモード（編集可能）に切り替えました');
+            } else {
+                if (errorMsg) errorMsg.style.display = 'block';
+            }
+        });
+    }
+
+    updateRoleUI();
+}
+
+function updateRoleUI() {
+    const badge = document.getElementById('user-role-badge');
+    const avatar = document.getElementById('user-avatar');
+    const btnToggle = document.getElementById('btn-toggle-role');
+    const isCoach = state.currentUserRole === 'coach';
+
+    if (badge) {
+        if (isCoach) {
+            badge.style.background = 'rgba(242, 57, 50, 0.15)';
+            badge.style.color = '#ef4444';
+            badge.innerHTML = '<i class="fa-solid fa-user-shield"></i> コーチ (編集権限)';
+        } else {
+            badge.style.background = 'rgba(34, 197, 94, 0.15)';
+            badge.style.color = '#15803d';
+            badge.innerHTML = '<i class="fa-solid fa-eye"></i> 保護者 (閲覧専用)';
+        }
+    }
+
+    if (avatar) {
+        if (isCoach) {
+            avatar.src = 'https://ui-avatars.com/api/?name=Coach&background=ef4444&color=fff';
+        } else {
+            avatar.src = 'https://ui-avatars.com/api/?name=Parent&background=22c55e&color=fff';
+        }
+    }
+
+    if (btnToggle) {
+        btnToggle.innerHTML = isCoach 
+            ? '<i class="fa-solid fa-eye"></i> 保護者モードへ' 
+            : '<i class="fa-solid fa-user-lock"></i> コーチモードへ';
+    }
+
+    // Toggle sidebar library and settings link visibility for parent role
+    const settingsLink = document.querySelector('.nav-links li[data-route="settings"]');
+    if (settingsLink) {
+        settingsLink.style.display = isCoach ? 'flex' : 'none';
+    }
+
+    const libraryLink = document.querySelector('.nav-links li[data-route="library"]');
+    if (libraryLink) {
+        libraryLink.style.display = isCoach ? 'flex' : 'none';
+    }
+
+    if (!isCoach && (state.currentRoute === 'settings' || state.currentRoute === 'library')) {
+        navigate('dashboard');
+    }
+
+    // Toggle read-only attribute on IDP textareas
+    const goalShort = document.getElementById('player-goal-short');
+    const goalLong = document.getElementById('player-goal-long');
+    if (goalShort) {
+        if (isCoach) goalShort.removeAttribute('readonly');
+        else goalShort.setAttribute('readonly', 'true');
+    }
+    if (goalLong) {
+        if (isCoach) goalLong.removeAttribute('readonly');
+        else goalLong.setAttribute('readonly', 'true');
+    }
+
+    // Add or remove read-only CSS mode on body
+    if (isCoach) {
+        document.body.classList.remove('role-read-only');
+    } else {
+        document.body.classList.add('role-read-only');
+    }
 }
 
 function navigate(route, params = null) {
@@ -314,9 +435,96 @@ function navigate(route, params = null) {
         if (route === 'matches') initMatches();
         if (route === 'practices') initPractices();
         if (route === 'players') initPlayers();
+        if (route === 'data') initData();
         if (route === 'library') initLibrary();
         if (route === 'settings') initSettings();
         if (route === 'animation') initAnimation(params);
+    }
+}
+
+function initData() {
+    const btnExportSettings = document.getElementById('btn-export-data');
+    const btnExportView = document.getElementById('btn-data-view-export');
+    
+    const handleExport = () => {
+        const dataStr = JSON.stringify({
+            matches: state.matches,
+            practices: state.practices,
+            players: state.players,
+            menuLibrary: state.menuLibrary,
+            matchTypes: state.matchTypes,
+            menuCategories: state.menuCategories,
+            skillMetrics: state.skillMetrics,
+            positions: state.positions,
+            teamInfo: state.teamInfo,
+            customFormations: state.customFormations
+        }, null, 2);
+
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+        const filename = `coachMgrBackup_${dateStr}.json`;
+
+        try {
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 500);
+            showToast(`${filename} をダウンロードしました`);
+        } catch (err) {
+            _showExportFallbackModal(dataStr);
+        }
+
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) {
+            setTimeout(() => _showExportFallbackModal(dataStr), 300);
+        }
+    };
+
+    if (btnExportSettings) btnExportSettings.onclick = handleExport;
+    if (btnExportView) btnExportView.onclick = handleExport;
+
+    const handleImportFile = (file, inputEl) => {
+        if (!file) return;
+        if (!confirm('現在のデータがすべて上書きされます。インポートを実行してよろしいですか？')) {
+            if (inputEl) inputEl.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const parsed = JSON.parse(evt.target.result);
+                if (!parsed.matches && !parsed.players && !parsed.practices) {
+                    alert('有効なデータファイルではありません。エクスポートしたJSONファイルを選択してください。');
+                    return;
+                }
+                localStorage.setItem('coachMgrData', JSON.stringify(parsed));
+                loadData();
+                document.documentElement.style.setProperty('--primary', state.teamInfo.color);
+                const sidebarTitle = document.querySelector('.sidebar-header h2');
+                if (sidebarTitle) sidebarTitle.innerHTML = `<i class="fa-solid fa-futbol"></i> ${state.teamInfo.name}`;
+                showToast('データをインポートしました。ページを再読み込みします...');
+                setTimeout(() => location.reload(), 1500);
+            } catch (err) {
+                alert('ファイルの読み込みに失敗しました。有効なJSONファイルを選択してください。');
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    const inputImportSettings = document.getElementById('input-import-data');
+    if (inputImportSettings) {
+        inputImportSettings.onchange = (e) => handleImportFile(e.target.files[0], inputImportSettings);
+    }
+
+    const inputImportView = document.getElementById('input-data-view-import');
+    if (inputImportView) {
+        inputImportView.onchange = (e) => handleImportFile(e.target.files[0], inputImportView);
     }
 }
 
@@ -357,6 +565,21 @@ function addGoalRecordRow(scorerId = null, assistId = null) {
     container.appendChild(div);
 }
 
+function addFormationVideoRow(urlVal = '') {
+    const container = document.getElementById('formation-video-list');
+    if (!container) return;
+    const rowId = 'video-row-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+    const div = document.createElement('div');
+    div.id = rowId;
+    div.className = 'formation-video-row';
+    div.style = 'display:flex; gap:0.5rem; align-items:center; width:100%;';
+    div.innerHTML = `
+        <input type="url" class="form-control formation-video-input" value="${urlVal}" placeholder="https://www.youtube.com/watch?v=... または https://youtu.be/..." style="flex:1; font-size:0.85rem; padding:0.3rem 0.6rem;">
+        <button type="button" class="btn btn-danger" onclick="document.getElementById('${rowId}').remove()" style="padding:0.25rem 0.5rem; font-size:0.85rem;" title="削除"><i class="fa-solid fa-trash"></i></button>
+    `;
+    container.appendChild(div);
+}
+
 function setupModals() {
     const closeBtns = document.querySelectorAll('.btn-close-modal');
     
@@ -380,6 +603,13 @@ function setupModals() {
     if (btnAddGoalRecord) {
         btnAddGoalRecord.onclick = () => {
             addGoalRecordRow();
+        };
+    }
+
+    const btnAddFormationVideo = document.getElementById('btn-add-formation-video');
+    if (btnAddFormationVideo) {
+        btnAddFormationVideo.onclick = () => {
+            addFormationVideoRow();
         };
     }
 
@@ -742,6 +972,11 @@ function setupModals() {
                 const name = document.getElementById('formation-name').value;
                 const system = document.getElementById('formation-system-select').value;
                 
+                // Collect video URLs
+                const videoInputs = document.querySelectorAll('#formation-video-list .formation-video-input');
+                const videoUrls = Array.from(videoInputs).map(inp => inp.value.trim()).filter(val => val.length > 0);
+                const videoUrl = videoUrls.length > 0 ? videoUrls[0] : '';
+                
                 const nodes = document.querySelectorAll('#tactical-formation-pitch .pitch-node');
                 const lineup = [];
                 nodes.forEach(node => {
@@ -762,6 +997,8 @@ function setupModals() {
                     if (formObj) {
                         formObj.name = name;
                         formObj.system = system;
+                        formObj.videoUrl = videoUrl;
+                        formObj.videoUrls = videoUrls;
                         formObj.lineup = lineup;
                     }
                 } else {
@@ -770,6 +1007,8 @@ function setupModals() {
                         id: Date.now(),
                         name,
                         system,
+                        videoUrl,
+                        videoUrls,
                         lineup,
                         boardData: []
                     });
@@ -792,7 +1031,8 @@ function setupModals() {
     if(formPlayerAssessment) {
         formPlayerAssessment.addEventListener('submit', (e) => {
             e.preventDefault();
-            const playerId = parseInt(document.getElementById('assessment-player-id').value);
+            const playerId = parseInt(document.getElementById('assessment-player-id').value, 10);
+            const editId = document.getElementById('assessment-edit-id').value;
             const player = state.players.find(p => p.id === playerId);
             if(player) {
                 const skills = [];
@@ -800,23 +1040,39 @@ function setupModals() {
                     const val = document.getElementById(`skill-ass-${i}`);
                     skills.push(val ? parseInt(val.value) : 3);
                 });
-                player.history.push({
-                    id: Date.now(),
-                    date: document.getElementById('assessment-date').value,
-                    comment: '【ポジティブ】\n' + document.getElementById('assessment-good').value + '\n\n【ネクストステップ】\n' + document.getElementById('assessment-improve').value,
-                    skills: skills
-                });
+                const commentText = '【ポジティブ】\n' + document.getElementById('assessment-good').value + '\n\n【ネクストステップ】\n' + document.getElementById('assessment-improve').value;
+                const evalDate = document.getElementById('assessment-date').value;
+
+                if (editId) {
+                    const hId = parseInt(editId, 10);
+                    const hItem = player.history ? player.history.find(h => h.id === hId) : null;
+                    if (hItem) {
+                        hItem.date = evalDate;
+                        hItem.comment = commentText;
+                        hItem.skills = skills;
+                        showToast('評価を更新しました');
+                    }
+                } else {
+                    if (!player.history) player.history = [];
+                    player.history.push({
+                        id: Date.now(),
+                        date: evalDate,
+                        comment: commentText,
+                        skills: skills
+                    });
+                    showToast('評価を記録しました');
+                }
+
                 // Sort history by date descending
                 player.history.sort((a,b) => new Date(b.date) - new Date(a.date));
                 saveData();
-                showToast('評価を記録しました');
                 document.getElementById('modal-player-assessment').classList.add('hidden');
                 
                 // Refresh player detail view
                 openPlayerDetail(playerId);
                 
                 // Re-render grid to update radar
-                navigate('players');
+                initPlayers();
             }
             e.target.reset();
         });
@@ -1659,22 +1915,27 @@ function openMatchDetail(id) {
                     });
                 }
                 
+                const vUrls = f.videoUrls && f.videoUrls.length > 0 ? f.videoUrls : (f.videoUrl ? [f.videoUrl] : []);
+                const videoBtn = vUrls.length > 0 ? vUrls.map((vUrl, idx) => `
+                    <a href="${vUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" class="btn btn-secondary" style="padding:0.15rem 0.4rem; font-size:0.75rem; color:#ef4444; text-decoration:none; display:inline-flex; align-items:center; gap:0.25rem;">
+                        <i class="fa-brands fa-youtube"></i> 動画${vUrls.length > 1 ? ` ${idx + 1}` : ''}
+                    </a>
+                `).join('') : '';
+
+                const hasBoardData = f.boardData && f.boardData.length > 0;
                 return `
                     <div class="card" style="margin-bottom:1rem; padding:1rem; cursor:pointer;" onclick="editFormation(${m.id}, ${f.id})">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
                             <strong style="color:var(--primary); font-size:1.1rem;">${f.name}</strong>
-                            <span class="badge">${f.system || '-'}</span>
+                            <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                                ${videoBtn}
+                                <span class="badge">${f.system || '-'}</span>
+                            </div>
                         </div>
                         <div style="display:flex; gap:1rem;">
-                            ${f.boardData && f.boardData.length > 0 ? `
-                                <div style="flex-shrink:0; width:200px; height:125px; background:#1e293b; border-radius:4px; overflow:hidden; position:relative;">
-                                    <canvas id="mini-pitch-${f.id}" width="800" height="500" style="width:100%; height:100%; object-fit:contain; pointer-events:none;"></canvas>
-                                </div>
-                            ` : `
-                                <div style="flex-shrink:0; width:200px; height:125px; background:rgba(0,0,0,0.05); border-radius:4px; display:flex; align-items:center; justify-content:center; color:var(--text-secondary); font-size:0.8rem;">
-                                    作図なし
-                                </div>
-                            `}
+                            <div style="flex-shrink:0; width:200px; height:125px; background:#1e293b; border-radius:4px; overflow:hidden; position:relative;">
+                                <canvas id="mini-pitch-${f.id}" width="800" height="500" style="width:100%; height:100%; object-fit:contain; pointer-events:none;"></canvas>
+                            </div>
                             <div style="font-size:0.85rem; display:flex; flex-direction:column; gap:0.25rem; flex:1;">
                                 ${roles.FW.length ? `<div><span style="color:#ef4444; width:30px; display:inline-block;">FW</span> ${roles.FW.join(', ')}</div>` : ''}
                                 ${roles.MF.length ? `<div><span style="color:#facc15; width:30px; display:inline-block;">MF</span> ${roles.MF.join(', ')}</div>` : ''}
@@ -1690,12 +1951,58 @@ function openMatchDetail(id) {
             // Draw mini pitches
             setTimeout(() => {
                 m.formations.forEach(f => {
-                    if(f.boardData && f.boardData.length > 0) {
-                        const mCanv = document.getElementById(`mini-pitch-${f.id}`);
-                        if(mCanv) {
-                            const mCtx = mCanv.getContext('2d');
-                            drawPitchToCtx(f.boardData, mCanv, mCtx, f.pitchTemplate || 'full');
-                        }
+                    const mCanv = document.getElementById(`mini-pitch-${f.id}`);
+                    if (!mCanv) return;
+                    const mCtx = mCanv.getContext('2d');
+                    
+                    if (f.boardData && f.boardData.length > 0) {
+                        drawPitchToCtx(f.boardData, mCanv, mCtx, f.pitchTemplate || 'full');
+                    } else {
+                        // Generate line-up board objects dynamically matching formation modal pitch coordinates
+                        const customForm = state.customFormations.find(cf => cf.name === f.system);
+                        const coords = customForm ? customForm.coords : (formationCoords[f.system] || (state.customFormations.length > 0 ? state.customFormations[0].coords : []));
+                        
+                        const lineupObjects = [];
+                        coords.forEach((coord, idx) => {
+                            const topPercent = parseFloat(coord.top) / 100;
+                            const leftPercent = parseFloat(coord.left) / 100;
+                            
+                            // Map vertical formation coordinates (GK at bottom 88%, FW at top 15%)
+                            // to horizontal landscape canvas (GK at left, FW at right, attacking rightwards)
+                            // topPercent -> Horizontal X axis (0.88 -> ~90px left GK, 0.15 -> ~670px right FW)
+                            // leftPercent -> Vertical Y axis
+                            const x = 20 + 760 * (1 - topPercent);
+                            const y = 20 + 460 * leftPercent;
+                            
+                            const assigned = f.lineup ? f.lineup.find(l => l.roleLabel === coord.label || (f.lineup.length === coords.length && l.roleIndex === idx)) : null;
+                            const p = assigned ? state.players.find(pl => pl.id === assigned.playerId) : null;
+                            
+                            // Player node circle (pointing right 90 deg towards opponent)
+                            lineupObjects.push({
+                                id: idx + 1,
+                                type: 'player',
+                                x: x,
+                                y: y,
+                                radius: 15,
+                                number: p ? p.number : coord.label,
+                                color: coord.role === 'GK' ? 'green' : 'blue',
+                                angle: 90
+                            });
+
+                            // Player name text badge under the node
+                            if (p) {
+                                lineupObjects.push({
+                                    id: 100 + idx,
+                                    type: 'text',
+                                    x: x,
+                                    y: y + 26,
+                                    text: `${p.number} ${p.name}`,
+                                    color: '#1e293b'
+                                });
+                            }
+                        });
+                        
+                        drawPitchToCtx(lineupObjects, mCanv, mCtx, 'full');
                     }
                 });
             }, 50);
@@ -1710,6 +2017,12 @@ function openMatchDetail(id) {
             document.getElementById('form-formation').reset();
             document.getElementById('formation-match-id').value = m.id;
             document.getElementById('formation-id').value = '';
+            
+            const vList = document.getElementById('formation-video-list');
+            if (vList) {
+                vList.innerHTML = '';
+                addFormationVideoRow(); // Default single empty input row
+            }
             
             const sysSelect = document.getElementById('formation-system-select');
             sysSelect.innerHTML = state.customFormations.map(cf => `<option value="${cf.name}">${cf.name} (${cf.coords.length}人制)</option>`).join('');
@@ -1731,6 +2044,39 @@ function openMatchDetail(id) {
                 openMatchModal(m.id);
             };
         }
+
+        // Define window.editFormation for editing existing formation periods
+        window.editFormation = (matchId, formationId) => {
+            if (state.currentUserRole !== 'coach') return; // Read-only for parent
+            const match = state.matches.find(mObj => mObj.id === matchId);
+            if (!match) return;
+            const fObj = match.formations.find(f => f.id === formationId);
+            if (!fObj) return;
+
+            document.getElementById('form-formation').reset();
+            document.getElementById('formation-match-id').value = matchId;
+            document.getElementById('formation-id').value = formationId;
+            document.getElementById('formation-name').value = fObj.name || '';
+            
+            const vList = document.getElementById('formation-video-list');
+            if (vList) {
+                vList.innerHTML = '';
+                const urls = fObj.videoUrls && fObj.videoUrls.length > 0 ? fObj.videoUrls : (fObj.videoUrl ? [fObj.videoUrl] : ['']);
+                urls.forEach(url => addFormationVideoRow(url));
+            }
+
+            const sysSelect = document.getElementById('formation-system-select');
+            sysSelect.innerHTML = state.customFormations.map(cf => `<option value="${cf.name}">${cf.name} (${cf.coords.length}人制)</option>`).join('');
+
+            const selectedSys = fObj.system || (state.customFormations.length > 0 ? state.customFormations[0].name : '3-3-1');
+            sysSelect.value = selectedSys;
+            sysSelect.onchange = (e) => {
+                renderFormationPitch(e.target.value, fObj.lineup || []);
+            };
+
+            renderFormationPitch(selectedSys, fObj.lineup || []);
+            openModal('modal-formation');
+        };
 
         // Bind player links click
         setTimeout(() => {
@@ -1871,8 +2217,16 @@ function initPractices() {
                                             <button class="btn btn-danger btn-delete-menu" data-pid="${p.id}" data-mid="${menu.id}" style="padding:0.3rem; font-size:0.8rem;"><i class="fa-solid fa-times"></i></button>
                                         </div>
                                     </summary>
-                                    ${(menu.organize || menu.keyfactor || menu.options) ? `
+                                    ${(menu.organize || menu.keyfactor || menu.options || menu.frames) ? `
                                     <div class="practice-menu-item-details" style="padding:0 0.8rem 0.8rem 0.8rem; border-top:1px solid rgba(0,0,0,0.05); font-size:0.85rem; color:var(--text-secondary); display:flex; flex-direction:column; gap:0.5rem; margin-top:0.4rem;">
+                                        <div class="practice-canvas-wrapper" style="width:100%; height:140px; background:#1e293b; border-radius:8px; overflow:hidden; position:relative; margin-top:0.25rem;" onclick="event.stopPropagation();">
+                                            <canvas id="practice-mini-pitch-${p.id}-${menu.id}" width="800" height="500" style="width:100%; height:100%; object-fit:contain; pointer-events:none;"></canvas>
+                                            ${menu.frames && menu.frames.length > 1 ? `
+                                                <div style="position:absolute; bottom:6px; right:6px; background:rgba(0,0,0,0.6); color:#fff; font-size:0.65rem; padding:0.15rem 0.35rem; border-radius:4px; font-weight:bold; pointer-events:none; display:flex; align-items:center; gap:0.2rem;">
+                                                    <span style="display:inline-block; width:6px; height:6px; background:#ef4444; border-radius:50%; animation: pulse 1.5s infinite;"></span>ANIM
+                                                </div>
+                                            ` : ''}
+                                        </div>
                                         ${menu.organize ? `<div><strong><i class="fa-solid fa-users"></i> オーガナイズ</strong><div style="white-space:pre-wrap; margin-top:0.15rem;">${menu.organize}</div></div>` : ''}
                                         ${menu.keyfactor ? `<div><strong><i class="fa-solid fa-key"></i> キーファクター</strong><div style="white-space:pre-wrap; margin-top:0.15rem;">${menu.keyfactor}</div></div>` : ''}
                                         ${menu.options ? `<div><strong><i class="fa-solid fa-sliders"></i> オプション</strong><div style="white-space:pre-wrap; margin-top:0.15rem;">${menu.options}</div></div>` : ''}
@@ -1912,9 +2266,46 @@ function initPractices() {
 
     practiceList.innerHTML = html;
 
-    document.getElementById('btn-add-practice').addEventListener('click', () => {
-        openPracticeModal();
-    });
+    // Clear old animation loops for practice mini pitches
+    if (window.practiceMiniPitchIntervals) {
+        window.practiceMiniPitchIntervals.forEach(clearInterval);
+    }
+    window.practiceMiniPitchIntervals = [];
+
+    // Draw practice mini pitches
+    setTimeout(() => {
+        filteredPractices.forEach(p => {
+            if (p.menus && p.menus.length > 0) {
+                p.menus.forEach(menu => {
+                    const mCanv = document.getElementById(`practice-mini-pitch-${p.id}-${menu.id}`);
+                    if (mCanv) {
+                        const mCtx = mCanv.getContext('2d');
+                        if (menu.frames && menu.frames.length > 0) {
+                            if (menu.frames.length > 1) {
+                                let frameIdx = 0;
+                                drawPitchToCtx(menu.frames[frameIdx], mCanv, mCtx, menu.pitchTemplate || 'full');
+                                
+                                const intervalId = setInterval(() => {
+                                    frameIdx = (frameIdx + 1) % menu.frames.length;
+                                    drawPitchToCtx(menu.frames[frameIdx], mCanv, mCtx, menu.pitchTemplate || 'full');
+                                }, 1200);
+                                window.practiceMiniPitchIntervals.push(intervalId);
+                            } else {
+                                drawPitchToCtx(menu.frames[0], mCanv, mCtx, menu.pitchTemplate || 'full');
+                            }
+                        } else {
+                            drawPitchToCtx([], mCanv, mCtx, menu.pitchTemplate || 'full');
+                        }
+                    }
+                });
+            }
+        });
+    }, 50);
+
+    const btnAddPractice = document.getElementById('btn-add-practice');
+    if (btnAddPractice) {
+        btnAddPractice.onclick = () => { openPracticeModal(); };
+    }
 
     document.querySelectorAll('.btn-edit-practice').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -2220,7 +2611,8 @@ function initPlayers() {
             }
         }, 50);
     } else {
-        playerGrid.innerHTML = state.players.map(p => {
+        const sortedPlayers = [...state.players].sort((a, b) => (parseInt(a.number, 10) || 0) - (parseInt(b.number, 10) || 0));
+        playerGrid.innerHTML = sortedPlayers.map(p => {
             return `
                 <div class="player-card" style="cursor:pointer;" onclick="openPlayerDetail(${p.id})">
                     <div class="player-card-header">
@@ -2249,7 +2641,7 @@ function initPlayers() {
         }).join('');
 
         // Draw Radar Charts
-        state.players.forEach(p => {
+        sortedPlayers.forEach(p => {
             const currentSkills = p.history && p.history.length > 0 ? p.history[0].skills : [0,0,0,0,0,0];
             drawRadarChart(`radar-${p.id}`, currentSkills);
         });
@@ -2591,9 +2983,11 @@ function initSettings() {
     // 1. Team Info
     const teamNameInput = document.getElementById('team-info-name');
     const teamColorInput = document.getElementById('team-info-color');
+    const teamPasscodeInput = document.getElementById('team-info-passcode');
     if(teamNameInput && teamColorInput) {
         teamNameInput.value = state.teamInfo.name;
         teamColorInput.value = state.teamInfo.color;
+        if (teamPasscodeInput) teamPasscodeInput.value = state.teamInfo.passcode || '1234';
         
         const formTeamInfo = document.getElementById('form-team-info');
         const newFormTeamInfo = formTeamInfo.cloneNode(true);
@@ -2602,6 +2996,10 @@ function initSettings() {
             e.preventDefault();
             state.teamInfo.name = document.getElementById('team-info-name').value;
             state.teamInfo.color = document.getElementById('team-info-color').value;
+            const newPasscode = document.getElementById('team-info-passcode') ? document.getElementById('team-info-passcode').value.trim() : '';
+            if (newPasscode) {
+                state.teamInfo.passcode = newPasscode;
+            }
             saveData();
             showToast('チーム基本情報を保存しました');
             // Update UI variables
@@ -2617,7 +3015,8 @@ function initSettings() {
         if(!list) return;
         list.innerHTML = stateArray.map((item, index) => {
             const isCustomForm = listId === 'custom-formation-list';
-            const editBtn = isCustomForm ? `<button type="button" class="btn btn-secondary btn-edit-custom-formation" data-index="${index}" style="padding:0.2rem 0.5rem; margin-right:0.3rem;"><i class="fa-solid fa-edit"></i> 編集</button>` : '';
+            const editBtnClass = isCustomForm ? 'btn-edit-custom-formation' : 'btn-edit-master-item';
+            const editBtn = `<button type="button" class="btn btn-secondary ${editBtnClass}" data-list="${listId}" data-index="${index}" style="padding:0.2rem 0.5rem; margin-right:0.3rem;"><i class="fa-solid fa-pen"></i> 編集</button>`;
             return `
                 <li style="display:flex; justify-content:space-between; align-items:center;">
                     <span>${itemLabelFunc(item)}</span>
@@ -2635,6 +3034,57 @@ function initSettings() {
     renderList('skill-metric-list', state.skillMetrics);
     renderList('position-list', state.positions);
     renderList('custom-formation-list', state.customFormations, (item) => `${item.name} (${item.coords.length}人制)`);
+
+    // Master item edit handler
+    document.querySelectorAll('.btn-edit-master-item').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const listId = e.currentTarget.dataset.list;
+            const idx = parseInt(e.currentTarget.dataset.index);
+            let currentVal = '';
+            let targetArray = null;
+
+            if (listId === 'match-type-list') {
+                targetArray = state.matchTypes;
+            } else if (listId === 'menu-category-list') {
+                targetArray = state.menuCategories;
+            } else if (listId === 'skill-metric-list') {
+                targetArray = state.skillMetrics;
+            } else if (listId === 'position-list') {
+                targetArray = state.positions;
+            }
+
+            if (!targetArray) return;
+            currentVal = targetArray[idx];
+
+            const newVal = prompt('名称を編集してください:', currentVal);
+            if (newVal !== null && newVal.trim() !== '' && newVal.trim() !== currentVal) {
+                const trimmed = newVal.trim();
+                const oldVal = targetArray[idx];
+                targetArray[idx] = trimmed;
+
+                // Update referenced objects where necessary
+                if (listId === 'match-type-list') {
+                    state.matches.forEach(m => { if (m.type === oldVal) m.type = trimmed; });
+                } else if (listId === 'menu-category-list') {
+                    state.practices.forEach(p => {
+                        if (p.menus) p.menus.forEach(m => { if (m.category === oldVal) m.category = trimmed; });
+                    });
+                    state.menuLibrary.forEach(m => { if (m.category === oldVal) m.category = trimmed; });
+                } else if (listId === 'position-list') {
+                    state.players.forEach(p => {
+                        if (Array.isArray(p.position)) {
+                            p.position = p.position.map(pos => pos === oldVal ? trimmed : pos);
+                        } else if (p.position === oldVal) {
+                            p.position = trimmed;
+                        }
+                    });
+                }
+
+                saveData();
+                initSettings();
+            }
+        });
+    });
 
     // Generic delete handler
     document.querySelectorAll('.btn-delete-item').forEach(btn => {
@@ -2937,88 +3387,8 @@ function initSettings() {
     setupAddForm('form-add-skill-metric', 'new-skill-metric', state.skillMetrics);
     setupAddForm('form-add-position', 'new-position', state.positions);
 
-    // --- Data Export ---
-    const btnExport = document.getElementById('btn-export-data');
-    if (btnExport) {
-        btnExport.addEventListener('click', () => {
-            const dataStr = JSON.stringify({
-                matches: state.matches,
-                practices: state.practices,
-                players: state.players,
-                menuLibrary: state.menuLibrary,
-                matchTypes: state.matchTypes,
-                menuCategories: state.menuCategories,
-                skillMetrics: state.skillMetrics,
-                positions: state.positions,
-                teamInfo: state.teamInfo
-            }, null, 2);
-
-            const now = new Date();
-            const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-            const filename = `coachMgrBackup_${dateStr}.json`;
-
-            // Try programmatic download (works on desktop & Android Chrome)
-            try {
-                const blob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 500);
-                showToast(`${filename} をダウンロードしました`);
-            } catch (err) {
-                // Fallback: show modal with JSON text to copy (iOS Safari / file://)
-                _showExportFallbackModal(dataStr);
-            }
-
-            // iOS Safari: blob download silently fails without error, so also show modal
-            // if the download anchor likely didn't work (detected via iOS UA)
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            if (isIOS) {
-                setTimeout(() => _showExportFallbackModal(dataStr), 300);
-            }
-        });
-    }
-
-    // --- Data Import ---
-    const inputImport = document.getElementById('input-import-data');
-    if (inputImport) {
-        inputImport.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            if (!confirm('現在のデータがすべて上書きされます。インポートを実行してよろしいですか？')) {
-                inputImport.value = '';
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-                try {
-                    const parsed = JSON.parse(evt.target.result);
-                    // Validate basic structure
-                    if (!parsed.matches && !parsed.players && !parsed.practices) {
-                        alert('有効なデータファイルではありません。エクスポートしたJSONファイルを選択してください。');
-                        return;
-                    }
-                    // Overwrite localStorage and reload state
-                    localStorage.setItem('coachMgrData', JSON.stringify(parsed));
-                    loadData();
-                    // Re-apply team info
-                    document.documentElement.style.setProperty('--primary', state.teamInfo.color);
-                    const sidebarTitle = document.querySelector('.sidebar-header h2');
-                    if (sidebarTitle) sidebarTitle.innerHTML = `<i class="fa-solid fa-futbol"></i> ${state.teamInfo.name}`;
-                    showToast('データをインポートしました。ページを再読み込みします...');
-                    setTimeout(() => location.reload(), 1500);
-                } catch (err) {
-                    alert('ファイルの読み込みに失敗しました。有効なJSONファイルを選択してください。');
-                }
-            };
-            reader.readAsText(file);
-        });
-    }
+    // Initialize data export and import handlers
+    initData();
 }
 
 let currentPlayerDetailId = null;
@@ -3143,12 +3513,17 @@ function openPlayerDetail(id) {
     const historyList = document.getElementById('pd-history-list');
     historyList.innerHTML = timeline.length > 0 ? timeline.map(item => {
         if (item.type === 'assessment') {
+            const hId = item.data ? item.data.id : null;
+            const editBtn = hId ? `<button type="button" class="btn btn-secondary btn-edit-assessment" data-history-id="${hId}" style="padding:0.15rem 0.4rem; font-size:0.7rem; margin-left:auto;"><i class="fa-solid fa-pen"></i> 編集</button>` : '';
+            const delBtn = hId ? `<button type="button" class="btn btn-danger btn-delete-assessment" data-history-id="${hId}" style="padding:0.15rem 0.4rem; font-size:0.7rem; margin-left:0.25rem;"><i class="fa-solid fa-trash"></i> 削除</button>` : '';
             return `
                 <div class="timeline-item">
-                    <div class="timeline-item-date">
-                        ${item.date} <span class="timeline-item-badge">スキル評価</span>
+                    <div class="timeline-item-date" style="display:flex; align-items:center;">
+                        <span>${item.date} <span class="timeline-item-badge">スキル評価</span></span>
+                        ${editBtn}
+                        ${delBtn}
                     </div>
-                    <div class="timeline-item-comment">${item.comment}</div>
+                    <div class="timeline-item-comment" style="white-space:pre-wrap;">${item.comment}</div>
                     <div class="timeline-item-skills">S:${item.data ? item.data.skills[0] : item.skills[0]} P:${item.data ? item.data.skills[1] : item.skills[1]} D:${item.data ? item.data.skills[2] : item.skills[2]} DF:${item.data ? item.data.skills[3] : item.skills[3]} PH:${item.data ? item.data.skills[4] : item.skills[4]} M:${item.data ? item.data.skills[5] : item.skills[5]}</div>
                 </div>
             `;
@@ -3168,6 +3543,59 @@ function openPlayerDetail(id) {
             `;
         }
     }).join('') : '<p class="text-secondary">記録がありません。</p>';
+
+    // Edit past assessment click handler
+    document.querySelectorAll('.btn-edit-assessment').forEach(btn => {
+        btn.onclick = (e) => {
+            const hId = parseInt(e.currentTarget.dataset.historyId, 10);
+            const hItem = p.history ? p.history.find(h => h.id === hId) : null;
+            if (!hItem) return;
+
+            document.getElementById('assessment-player-id').value = p.id;
+            document.getElementById('assessment-edit-id').value = hId;
+            const titleEl = document.getElementById('assessment-modal-title');
+            if (titleEl) titleEl.textContent = 'スキル評価を編集';
+
+            document.getElementById('assessment-date').value = hItem.date || new Date().toISOString().split('T')[0];
+
+            let goodText = '';
+            let improveText = '';
+            if (hItem.comment) {
+                const parts = hItem.comment.split('\n\n【ネクストステップ】\n');
+                if (parts.length === 2) {
+                    goodText = parts[0].replace('【ポジティブ】\n', '');
+                    improveText = parts[1];
+                } else {
+                    goodText = hItem.comment;
+                }
+            }
+            document.getElementById('assessment-good').value = goodText;
+            document.getElementById('assessment-improve').value = improveText;
+
+            const assSkills = document.getElementById('assessment-skills-container');
+            if (assSkills) {
+                assSkills.innerHTML = state.skillMetrics.map((m, i) => `
+                    <div class="form-group"><label>${m}</label><input type="number" id="skill-ass-${i}" class="form-control" min="1" max="5" value="${(hItem.skills && hItem.skills[i]) || 3}" required></div>
+                `).join('');
+            }
+
+            openModal('modal-player-assessment');
+        };
+    });
+
+    // Delete past assessment click handler
+    document.querySelectorAll('.btn-delete-assessment').forEach(btn => {
+        btn.onclick = (e) => {
+            const hId = parseInt(e.currentTarget.dataset.historyId, 10);
+            if (confirm('この過去の評価記録を削除しますか？')) {
+                p.history = p.history.filter(h => h.id !== hId);
+                saveData();
+                showToast('評価を削除しました');
+                openPlayerDetail(p.id);
+                initPlayers();
+            }
+        };
+    });
 
     document.querySelectorAll('.btn-timeline-anim').forEach(btn => {
         btn.onclick = (e) => {
@@ -3197,7 +3625,12 @@ function openPlayerDetail(id) {
     // Add assessment btn
     document.getElementById('btn-add-assessment').onclick = () => {
         document.getElementById('assessment-player-id').value = p.id;
+        document.getElementById('assessment-edit-id').value = '';
+        const titleEl = document.getElementById('assessment-modal-title');
+        if (titleEl) titleEl.textContent = '新しいスキル評価を記録';
         document.getElementById('assessment-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('assessment-good').value = '';
+        document.getElementById('assessment-improve').value = '';
         
         const assSkills = document.getElementById('assessment-skills-container');
         if(assSkills) {
@@ -3533,7 +3966,7 @@ function updateCanvasToolbar() {
         btnDelete.style.opacity = selectedObject ? '1' : '0.5';
     }
     if (btnRotate) {
-        const canRotate = !!(selectedObject && selectedObject.type === 'minigoal');
+        const canRotate = !!(selectedObject && (selectedObject.type === 'minigoal' || selectedObject.type === 'player'));
         btnRotate.disabled = !canRotate;
         btnRotate.style.opacity = canRotate ? '1' : '0.5';
     }
@@ -3811,8 +4244,8 @@ function initAnimation(params) {
         const newBtnRotate = btnRotate.cloneNode(true);
         btnRotate.parentNode.replaceChild(newBtnRotate, btnRotate);
         newBtnRotate.addEventListener('click', () => {
-            if (selectedObject && selectedObject.type === 'minigoal') {
-                selectedObject.angle = ((selectedObject.angle || 0) + 90) % 360;
+            if (selectedObject && (selectedObject.type === 'minigoal' || selectedObject.type === 'player')) {
+                selectedObject.angle = ((selectedObject.angle || 0) + 45) % 360;
                 saveHistory();
                 drawPitch(objects);
             }
@@ -4579,31 +5012,72 @@ function drawPitchToCtx(renderObjects, targetCanvas, targetCtx, template = 'full
                 targetCtx.setLineDash([]);
             }
         } else if (obj.type === 'player') {
+            const r = obj.radius || 16;
+            const angle = obj.angle || 0;
+            targetCtx.save();
+            targetCtx.translate(obj.x, obj.y);
+
+            // Color scheme
+            let mainColor = '#1d0b5e';
+            if (obj.color === 'red') {
+                mainColor = '#800a1d';
+            } else if (obj.color === 'blue') {
+                mainColor = '#1d0b5e';
+            } else if (obj.color === 'green') {
+                mainColor = '#064e3b';
+            } else if (obj.color === 'orange') {
+                mainColor = '#7c2d12';
+            } else if (obj.color) {
+                mainColor = obj.color;
+            }
+
+            // Rotate coordinate system for player pointer direction
+            targetCtx.rotate((angle * Math.PI) / 180);
+
+            // 1. Top Pointer Triangle (Triangle pointing upward relative to rotated angle)
             targetCtx.beginPath();
-            targetCtx.arc(obj.x + 2, obj.y + 2, obj.radius, 0, Math.PI * 2);
-            targetCtx.fillStyle = 'rgba(0,0,0,0.3)';
+            targetCtx.moveTo(-r * 0.45, -r * 1.05);
+            targetCtx.lineTo(0, -r * 1.55);
+            targetCtx.lineTo(r * 0.45, -r * 1.05);
+            targetCtx.closePath();
+            targetCtx.fillStyle = mainColor;
             targetCtx.fill();
-            
+
+            // 2. Main Spherical/Circular Body with radial highlight
+            const grad = targetCtx.createRadialGradient(0, -r * 0.3, r * 0.1, 0, 0, r);
+            grad.addColorStop(0, '#311096');
+            grad.addColorStop(0.7, mainColor);
+            grad.addColorStop(1, '#0f0538');
+
             targetCtx.beginPath();
-            targetCtx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
-            targetCtx.fillStyle = obj.color;
+            targetCtx.arc(0, 0, r, 0, Math.PI * 2);
+            targetCtx.fillStyle = (obj.color === 'blue' || !obj.color) ? grad : mainColor;
             targetCtx.fill();
-            targetCtx.strokeStyle = '#1e293b';
-            targetCtx.lineWidth = 2;
+
+            // Subtle inner light border rim
+            targetCtx.beginPath();
+            targetCtx.arc(0, 0, r - 0.75, 0, Math.PI * 2);
+            targetCtx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+            targetCtx.lineWidth = 1.2;
             targetCtx.stroke();
-            
+
+            // Un-rotate for text so text remains upright and readable
+            targetCtx.rotate((-angle * Math.PI) / 180);
+
+            // 3. White Center Label (Position or Jersey Number)
+            let label = obj.number !== undefined && obj.number !== null ? String(obj.number) : '';
             targetCtx.fillStyle = '#ffffff';
-            targetCtx.font = 'bold 12px Inter';
+            targetCtx.font = 'bold 12px "Inter", "Meiryo", sans-serif';
             targetCtx.textAlign = 'center';
             targetCtx.textBaseline = 'middle';
-            
-            let label = obj.number || '';
-            targetCtx.fillText(label, obj.x, obj.y + 1);
-            
+            targetCtx.fillText(label, 0, 0.5);
+
+            targetCtx.restore();
+
             // Draw highlight if selected
             if (typeof selectedObject !== 'undefined' && selectedObject === obj) {
                 targetCtx.beginPath();
-                targetCtx.arc(obj.x, obj.y, obj.radius + 4, 0, Math.PI * 2);
+                targetCtx.arc(obj.x, obj.y, r + 6, 0, Math.PI * 2);
                 targetCtx.strokeStyle = 'var(--primary)';
                 targetCtx.lineWidth = 2;
                 targetCtx.setLineDash([2, 2]);

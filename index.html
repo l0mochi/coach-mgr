@@ -13,7 +13,7 @@
     <div id="app" class="app-container">
         <!-- Sidebar -->
         <nav class="sidebar" id="sidebar">
-            <div class="sidebar-header">
+            <div class="sidebar-header" style="cursor:pointer;" id="sidebar-team-brand">
                 <h2><i class="fa-solid fa-futbol"></i> CoachMgr</h2>
             </div>
             <ul class="nav-links">
@@ -22,6 +22,7 @@
                 <li data-route="practices"><i class="fa-solid fa-calendar-check"></i> 練習管理</li>
                 <li data-route="library"><i class="fa-solid fa-book"></i> メニュー管理</li>
                 <li data-route="players"><i class="fa-solid fa-users"></i> 選手管理</li>
+                <li data-route="data"><i class="fa-solid fa-database"></i> データ管理</li>
                 <li data-route="settings"><i class="fa-solid fa-gear"></i> 設定(マスタ)</li>
             </ul>
         </nav>
@@ -31,8 +32,16 @@
             <header class="topbar">
                 <button id="menu-toggle" class="menu-toggle"><i class="fa-solid fa-bars"></i></button>
                 <div class="topbar-title" id="topbar-title">試合記録</div>
-                <div class="user-profile">
-                    <img src="https://ui-avatars.com/api/?name=Coach&background=random" alt="Profile" class="avatar">
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <div id="user-role-badge" style="font-size:0.75rem; padding:0.25rem 0.6rem; border-radius:20px; font-weight:bold; background:rgba(34, 197, 94, 0.15); color:#15803d; display:inline-flex; align-items:center; gap:0.3rem;">
+                        <i class="fa-solid fa-eye"></i> 保護者 (閲覧専用)
+                    </div>
+                    <button class="btn btn-secondary" id="btn-toggle-role" style="font-size:0.75rem; padding:0.25rem 0.6rem;">
+                        <i class="fa-solid fa-user-shield"></i> モード切替
+                    </button>
+                    <div class="user-profile">
+                        <img id="user-avatar" src="https://ui-avatars.com/api/?name=Parent&background=22c55e&color=fff" alt="Profile" class="avatar">
+                    </div>
                 </div>
             </header>
 
@@ -41,6 +50,26 @@
         </main>
 
     </div><!-- /#app -->
+
+    <!-- Passcode Modal for Coach Mode -->
+    <div id="modal-coach-passcode" class="modal-overlay hidden" style="z-index: 1002;">
+        <div class="modal" style="max-width:380px; text-align:center;">
+            <div style="font-size:2.5rem; color:var(--primary); margin-bottom:0.5rem;"><i class="fa-solid fa-user-lock"></i></div>
+            <h2 style="margin-bottom:0.5rem; font-size:1.2rem;">コーチモードへの切り替え</h2>
+            <p class="text-secondary" style="font-size:0.8rem; margin-bottom:1.5rem;">編集機能を利用するにはパスコード（初期設定: 1234）を入力してください。</p>
+            <form id="form-coach-passcode">
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label style="display:block; text-align:center; margin-bottom:0.4rem;">パスコード <span class="badge-required">必須</span></label>
+                    <input type="password" id="input-coach-passcode" class="form-control" placeholder="パスコードを入力" style="text-align:center; font-size:1.2rem; letter-spacing:0.2em;" required autofocus>
+                </div>
+                <div id="passcode-error-msg" style="display:none; color:#ef4444; font-size:0.8rem; margin-bottom:1rem;">パスコードが違います。</div>
+                <div style="display:flex; justify-content:center; align-items:center; gap:0.75rem; width:100%;">
+                    <button type="button" class="btn btn-secondary btn-close-modal" style="flex:1; text-align:center; justify-content:center;">キャンセル</button>
+                    <button type="submit" class="btn btn-primary" style="flex:1; text-align:center; justify-content:center;">解除する</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- ===== Templates (hidden, cloned on navigation) ===== -->
 
@@ -51,7 +80,7 @@
             <div class="dashboard-left-column">
 
                 <!-- Card 1: W-L-D Stats + Team Leaders -->
-                <div class="card" style="padding: 1rem 1.2rem; margin-bottom: 0.75rem;">
+                <div class="card" style="padding: 1rem 1.2rem; margin: 0;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; border-bottom:1px solid var(--surface-border); padding-bottom:0.35rem;">
                         <h3 style="font-size:0.95rem; color:var(--primary); font-weight:600; margin:0;"><i class="fa-solid fa-chart-line"></i> チーム成績・リーダー</h3>
                     </div>
@@ -91,7 +120,7 @@
                 </div>
 
                 <!-- Card 2: Recent Match Results -->
-                <div class="card" style="padding: 1rem 1.2rem; margin-bottom: 0;">
+                <div class="card" style="padding: 1rem 1.2rem; margin: 0; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; border-bottom:1px solid var(--surface-border); padding-bottom:0.35rem;">
                         <h3 style="font-size:0.95rem; color:var(--primary); font-weight:600; margin:0;"><i class="fa-solid fa-trophy"></i> 直近の試合結果</h3>
                         <div style="display:flex; align-items:center; gap:0.4rem;">
@@ -102,14 +131,14 @@
                             <button class="btn btn-secondary" id="dash-btn-go-matches" style="padding:0.1rem 0.35rem; font-size:0.68rem; height:20px;"><i class="fa-solid fa-chevron-right"></i> 一覧</button>
                         </div>
                     </div>
-                    <div id="dash-matches-content" class="dash-horizontal-grid" style="gap:0.5rem;">
+                    <div id="dash-matches-content" class="dash-horizontal-grid" style="gap:0.5rem; flex:1;">
                     </div>
                 </div>
             </div>
 
             <!-- Right Column: Schedule Manager -->
             <div class="dashboard-right-column">
-                <div class="card" style="padding: 1rem 1.2rem; height:100%; display:flex; flex-direction:column; box-sizing:border-box;">
+                <div class="card" style="padding: 1rem 1.2rem; height:100%; display:flex; flex-direction:column; box-sizing:border-box; margin: 0;">
                     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--surface-border); padding-bottom:0.35rem; margin-bottom:0.7rem; flex-shrink:0;">
                         <h3 style="font-size:0.95rem; color:var(--primary); font-weight:600; margin:0;"><i class="fa-solid fa-calendar-days"></i> 練習・試合予定</h3>
                         <div style="display:flex; gap:0.3rem;">
@@ -218,8 +247,12 @@
                 <div class="sl-section-body">
                     <form id="form-team-info">
                         <div class="sl-row">
-                            <span class="sl-row-label">チーム名</span>
+                            <span class="sl-row-label">チーム名 <span class="badge-required">必須</span></span>
                             <input type="text" id="team-info-name" class="sl-input" required>
+                        </div>
+                        <div class="sl-row">
+                            <span class="sl-row-label">コーチパスコード</span>
+                            <input type="password" id="team-info-passcode" class="sl-input" placeholder="初期設定: 1234" style="max-width:140px; text-align:center;">
                         </div>
                         <div class="sl-row sl-row-last">
                             <span class="sl-row-label">テーマカラー</span>
@@ -309,15 +342,15 @@
                                 <i class="fa-solid fa-file-export" style="color:var(--primary); font-size:0.85rem;"></i>
                                 <strong style="font-size:0.85rem;">エクスポート（バックアップ）</strong>
                             </div>
-                            <p class="text-secondary" style="font-size:0.75rem; margin-bottom:0.6rem;">現在のすべてのデータをJSONとしてダウンロードします。</p>
+                            <p class="text-secondary" style="font-size:0.75rem; margin-bottom:0.6rem;">現在のすべてのデータをJSONファイルとして保存します（コーチ用）。</p>
                             <button class="btn btn-primary btn-sm" id="btn-export-data" style="width:100%;"><i class="fa-solid fa-download"></i> エクスポート</button>
                         </div>
                         <div style="flex:1; min-width:220px;">
                             <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
                                 <i class="fa-solid fa-file-import" style="color:#f59e0b; font-size:0.85rem;"></i>
-                                <strong style="font-size:0.85rem;">インポート（復元）</strong>
+                                <strong style="font-size:0.85rem;">インポート（読込・復元）</strong>
                             </div>
-                            <p class="text-secondary" style="font-size:0.75rem; margin-bottom:0.6rem;">⚠️ 現在のデータはすべて上書きされます。</p>
+                            <p class="text-secondary" style="font-size:0.75rem; margin-bottom:0.6rem;">コーチから共有されたJSONファイルを読み込みます（保護者/復元用）。</p>
                             <label class="btn btn-secondary btn-sm" style="width:100%; cursor:pointer; justify-content:center; display:flex; align-items:center; gap:0.5rem;">
                                 <i class="fa-solid fa-upload"></i> インポート
                                 <input type="file" id="input-import-data" accept=".json" style="display:none;">
@@ -327,6 +360,92 @@
                 </div>
             </div>
 
+        </div>
+    </template>
+
+    <template id="tpl-data">
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+            <!-- Header Banner Card -->
+            <div class="card" style="padding:1.5rem; background:linear-gradient(135deg, rgba(242,57,50,0.05), rgba(30,41,59,0.03)); border:1px solid var(--surface-border);">
+                <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+                    <div style="width:48px; height:48px; border-radius:12px; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
+                        <i class="fa-solid fa-database"></i>
+                    </div>
+                    <div style="flex:1; min-width:240px;">
+                        <h2 style="font-size:1.2rem; font-weight:bold; margin:0 0 0.3rem 0; color:var(--text-primary);">データ連携・バックアップ管理</h2>
+                        <p class="text-secondary" style="font-size:0.85rem; margin:0; line-height:1.4;">
+                            試合記録、練習予定、フォーメーション、選手プロフィールのすべてのデータをファイル（JSON）として出力・共有・保存できます。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two Main Operations Cards -->
+            <div class="library-grid">
+                <!-- Export Card -->
+                <div class="card" id="data-export-card" style="padding:1.5rem; display:flex; flex-direction:column; justify-content:space-between; gap:1.25rem;">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
+                            <div style="display:flex; align-items:center; gap:0.6rem;">
+                                <div style="width:36px; height:36px; border-radius:8px; background:rgba(34,197,94,0.12); color:#16a34a; display:flex; align-items:center; justify-content:center; font-size:1.1rem;">
+                                    <i class="fa-solid fa-file-export"></i>
+                                </div>
+                                <div>
+                                    <h3 style="font-size:1.05rem; font-weight:bold; margin:0;">データをエクスポート</h3>
+                                    <span class="text-secondary" style="font-size:0.75rem;">バックアップファイルの作成</span>
+                                </div>
+                            </div>
+                            <span class="badge" style="background:rgba(34,197,94,0.15); color:#15803d; font-size:0.7rem;">出力</span>
+                        </div>
+                        
+                        <p class="text-secondary" style="font-size:0.85rem; line-height:1.5; margin-bottom:1rem;">
+                            現在登録されているチームの全データ（試合記録、練習日、メニュー、選手情報、各フォーメーション等）をまとめたJSON形式のファイルを生成・保存します。
+                        </p>
+
+                        <div style="background:rgba(0,0,0,0.03); border:1px solid var(--surface-border); border-radius:8px; padding:0.8rem; font-size:0.8rem; color:var(--text-secondary);">
+                            <div style="font-weight:bold; margin-bottom:0.25rem; color:var(--text-primary);"><i class="fa-solid fa-circle-info"></i> 利用シーン</div>
+                            ・保護者やスタッフへ最新データを共有するとき<br>
+                            ・端末変更やバックアップとして保管するとき
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" id="btn-data-view-export" style="width:100%; padding:0.75rem; justify-content:center; font-size:0.95rem; font-weight:bold;">
+                        <i class="fa-solid fa-download"></i> エクスポート (JSONダウンロード)
+                    </button>
+                </div>
+
+                <!-- Import Card -->
+                <div class="card" style="padding:1.5rem; display:flex; flex-direction:column; justify-content:space-between; gap:1.25rem;">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
+                            <div style="display:flex; align-items:center; gap:0.6rem;">
+                                <div style="width:36px; height:36px; border-radius:8px; background:rgba(245,158,11,0.12); color:#d97706; display:flex; align-items:center; justify-content:center; font-size:1.1rem;">
+                                    <i class="fa-solid fa-file-import"></i>
+                                </div>
+                                <div>
+                                    <h3 style="font-size:1.05rem; font-weight:bold; margin:0;">データをインポート</h3>
+                                    <span class="text-secondary" style="font-size:0.75rem;">データの読込・復元</span>
+                                </div>
+                            </div>
+                            <span class="badge" style="background:rgba(245,158,11,0.15); color:#b45309; font-size:0.7rem;">取込</span>
+                        </div>
+
+                        <p class="text-secondary" style="font-size:0.85rem; line-height:1.5; margin-bottom:1rem;">
+                            コーチから受け取ったJSONファイルを取り込み、アプリ内の試合情報や練習予定を最新状態に更新します。
+                        </p>
+
+                        <div style="background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.2); border-radius:8px; padding:0.8rem; font-size:0.8rem; color:#b91c1c;">
+                            <div style="font-weight:bold; margin-bottom:0.25rem;"><i class="fa-solid fa-triangle-exclamation"></i> 注意事項</div>
+                            インポートを実行すると、現在このブラウザに表示されているデータは取り込んだ内容に上書き更新されます。
+                        </div>
+                    </div>
+
+                    <label class="btn btn-secondary" style="width:100%; padding:0.75rem; justify-content:center; font-size:0.95rem; font-weight:bold; cursor:pointer; margin:0; box-sizing:border-box;">
+                        <i class="fa-solid fa-upload"></i> インポート (ファイルを選択)
+                        <input type="file" id="input-data-view-import" accept=".json" style="display:none;">
+                    </label>
+                </div>
+            </div>
         </div>
     </template>
 
@@ -386,7 +505,7 @@
                 <div class="canvas-toolbar-section" style="background:rgba(0,0,0,0.03); padding:0.25rem; border-radius:6px;">
                     <div style="display:flex; align-items:center; gap:0.25rem; width:100%; flex-wrap:wrap;">
                         <label for="canvas-player-number" style="font-size:0.7rem; color:var(--text-secondary); margin:0; white-space:nowrap;">背番号:</label>
-                        <input type="text" id="canvas-player-number" value="1" maxlength="3" style="width:30px; padding:0.1rem; text-align:center; background:#ffffff; border:1px solid var(--surface-border); color:var(--text-primary); border-radius:3px; font-weight:bold; font-size:0.75rem; height:20px; box-sizing:border-box;">
+                        <input type="text" id="canvas-player-number" value="" maxlength="3" style="width:30px; padding:0.1rem; text-align:center; background:#ffffff; border:1px solid var(--surface-border); color:var(--text-primary); border-radius:3px; font-weight:bold; font-size:0.75rem; height:20px; box-sizing:border-box;">
                         
                         <label for="canvas-player-color" style="font-size:0.7rem; color:var(--text-secondary); margin:0; white-space:nowrap; margin-left:0.25rem;">色:</label>
                         <select id="canvas-player-color" style="flex:1; padding:0.1rem; font-size:0.7rem; border:1px solid var(--surface-border); border-radius:3px; height:20px; background:#ffffff; color:var(--text-primary);">
@@ -488,38 +607,38 @@
             <form id="form-match">
                 <input type="hidden" id="match-edit-id" value="">
                 <div class="form-group">
-                    <label>日付</label>
+                    <label>日付 <span class="badge-required">必須</span></label>
                     <input type="date" id="match-date" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label>対戦相手</label>
-                    <input type="text" id="match-opponent" class="form-control" required>
+                    <label>対戦相手 <span class="badge-required">必須</span></label>
+                    <input type="text" id="match-opponent" class="form-control" placeholder="例: FC東京U-12" required>
                 </div>
                 <div class="form-group">
-                    <label>試合種別</label>
+                    <label>試合種別 <span class="badge-optional">任意</span></label>
                     <select id="match-type" class="form-control">
                         <!-- Populated dynamically -->
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>大会名・リーグ名等</label>
+                    <label>大会名・リーグ名等 <span class="badge-optional">任意</span></label>
                     <input type="text" id="match-tournament" class="form-control" placeholder="例: 大会名、リーグ名など（任意）">
                 </div>
                  <div class="form-group" style="display:flex; gap:1rem; align-items:center;">
                     <div style="flex:1;">
-                        <label>自チーム得点 (予定時は空欄)</label>
+                        <label>自チーム得点 <span class="badge-optional">任意</span></label>
                         <input type="number" id="match-score-us" class="form-control" min="0">
                     </div>
                     <span>-</span>
                     <div style="flex:1;">
-                        <label>相手チーム得点 (予定時は空欄)</label>
+                        <label>相手チーム得点 <span class="badge-optional">任意</span></label>
                         <input type="number" id="match-score-them" class="form-control" min="0">
                     </div>
                 </div>
                 <input type="hidden" id="match-scorers" value="">
                 <div class="form-group">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-                        <label style="margin:0;">得点・アシスト記録</label>
+                        <label style="margin:0;">得点・アシスト記録 <span class="badge-optional">任意</span></label>
                         <button type="button" class="btn btn-secondary" id="btn-add-goal-record" style="font-size:0.75rem; padding:0.2rem 0.5rem;"><i class="fa-solid fa-plus"></i> 追加</button>
                     </div>
                     <div id="goal-records-list" style="display:flex; flex-direction:column; gap:0.5rem; max-height:150px; overflow-y:auto;">
@@ -527,11 +646,11 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>チーム振り返りメモ（ポジティブ）</label>
+                    <label>チーム振り返りメモ（ポジティブ） <span class="badge-optional">任意</span></label>
                     <textarea id="match-comments-good" class="form-control" rows="2" placeholder="ビルドアップのテンポが良かった..."></textarea>
                 </div>
                 <div class="form-group">
-                    <label>チーム振り返りメモ（ネクストステップ）</label>
+                    <label>チーム振り返りメモ（ネクストステップ） <span class="badge-optional">任意</span></label>
                     <textarea id="match-comments-improve" class="form-control" rows="2" placeholder="ネガティブトランジションの遅さ..."></textarea>
                 </div>
                 <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:2rem;">
@@ -610,14 +729,24 @@
                 
                 <div class="form-group" style="display:flex; gap:1rem;">
                     <div style="flex:1;">
-                        <label>ピリオド名 (例: 前半, 1本目)</label>
+                        <label>ピリオド名 (例: 前半, 1本目) <span class="badge-required">必須</span></label>
                         <input type="text" id="formation-name" class="form-control" required>
                     </div>
                     <div style="flex:1;">
-                        <label>システム</label>
+                        <label>システム <span class="badge-optional">任意</span></label>
                         <select id="formation-system-select" class="form-control">
                             <!-- Populated dynamically -->
                         </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                        <label style="margin:0;"><i class="fa-brands fa-youtube" style="color:#ef4444;"></i> 試合動画URL (YouTube) <span class="badge-optional">任意</span></label>
+                        <button type="button" class="btn btn-secondary" id="btn-add-formation-video" style="font-size:0.75rem; padding:0.2rem 0.5rem;"><i class="fa-solid fa-plus"></i> 動画リンクを追加</button>
+                    </div>
+                    <div id="formation-video-list" style="display:flex; flex-direction:column; gap:0.5rem;">
+                        <!-- Dynamic video URL inputs -->
                     </div>
                 </div>
                 
@@ -670,11 +799,11 @@
             <form id="form-practice">
                 <input type="hidden" id="practice-edit-id">
                 <div class="form-group">
-                    <label>日付</label>
+                    <label>日付 <span class="badge-required">必須</span></label>
                     <input type="date" id="practice-date" class="form-control" required>
                 </div>
                  <div class="form-group">
-                    <label>選手出欠（名簿）</label>
+                    <label>選手出欠（名簿） <span class="badge-optional">任意</span></label>
                     <div id="practice-attendance-roster" style="max-height: 180px; overflow-y: auto; background: rgba(0,0,0,0.03); border: 1px solid var(--surface-border); border-radius: 12px; padding: 0.8rem 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
                         <!-- Checkboxes populated dynamically -->
                     </div>
@@ -692,7 +821,7 @@
         <div class="modal">
             <h2 style="margin-bottom:1.5rem;">練習メニューを追加</h2>
             <div class="form-group" style="margin-bottom:2rem; padding-bottom:1rem; border-bottom:1px solid var(--surface-border);">
-                <label style="color:var(--primary);"><i class="fa-solid fa-book"></i> ライブラリから選んでコピー</label>
+                <label style="color:var(--primary);"><i class="fa-solid fa-book"></i> ライブラリから選んでコピー <span class="badge-optional">任意</span></label>
                 <select id="menu-library-select" class="form-control">
                     <option value="">（新規作成）</option>
                     <!-- Options injected here -->
@@ -704,25 +833,25 @@
                 <input type="hidden" id="menu-library-source-id">
                 <input type="hidden" id="menu-edit-id">
                 <div class="form-group">
-                    <label>テーマ・フォーカス</label>
+                    <label>テーマ・フォーカス <span class="badge-required">必須</span></label>
                     <input type="text" id="menu-focus" class="form-control" placeholder="例: ポゼッション 4vs4+フリーマン" required>
                 </div>
                 <div class="form-group">
-                    <label>カテゴリ</label>
+                    <label>カテゴリ <span class="badge-optional">任意</span></label>
                     <select id="menu-category" class="form-control">
                         <!-- Populated dynamically -->
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>オーガナイズ（人数・コートサイズ・ルールなど）</label>
+                    <label>オーガナイズ（人数・コートサイズ・ルールなど） <span class="badge-optional">任意</span></label>
                     <textarea id="menu-organize" class="form-control" rows="2" placeholder="例: 20m x 20m, 4vs4+1フリーマン"></textarea>
                 </div>
                 <div class="form-group">
-                    <label>キーファクター（指導のポイント）</label>
+                    <label>キーファクター（指導のポイント） <span class="badge-optional">任意</span></label>
                     <textarea id="menu-keyfactor" class="form-control" rows="2" placeholder="例: ボールを受ける前の身体の向き、プレスの強度"></textarea>
                 </div>
                 <div class="form-group">
-                    <label>練習のオプションの説明</label>
+                    <label>練習のオプションの説明 <span class="badge-optional">任意</span></label>
                     <textarea id="menu-options" class="form-control" rows="2" placeholder="例: 慣れてきたらタッチ制限（2タッチ以内）を追加"></textarea>
                 </div>
                 <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:2rem;">
@@ -741,16 +870,16 @@
                 <input type="hidden" id="player-edit-id">
                 <div style="display:flex; gap:1rem; margin-bottom:1rem;">
                     <div class="form-group" style="flex:2;">
-                        <label>名前</label>
+                        <label>名前 <span class="badge-required">必須</span></label>
                         <input type="text" id="player-name" class="form-control" required>
                     </div>
                     <div class="form-group" style="flex:1;">
-                        <label>背番号</label>
+                        <label>背番号 <span class="badge-required">必須</span></label>
                         <input type="number" id="player-number" class="form-control" required>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>ポジション（複数選択可）</label>
+                    <label>ポジション（複数選択可） <span class="badge-optional">任意</span></label>
                     <div id="player-position-container" class="checkbox-group-container">
                         <!-- Checkboxes populated dynamically -->
                     </div>
@@ -759,11 +888,11 @@
                 <div id="player-initial-assessment-section" style="margin-top:1.5rem; margin-bottom:1rem; padding-top:1.5rem; border-top:1px solid var(--surface-border);">
                     <h3 style="font-size:1.1rem; margin-bottom:1rem;"><i class="fa-solid fa-chart-pie"></i> 初回スキル評価 (1〜5)</h3>
                     <div class="form-group">
-                        <label>ポジティブ（良かった点・強み）</label>
+                        <label>ポジティブ（良かった点・強み） <span class="badge-required">必須</span></label>
                         <input type="text" id="player-initial-good" class="form-control" placeholder="例: ドリブルの突破力が上がった" required>
                     </div>
                     <div class="form-group">
-                        <label>ネクストステップ（さらによくできる点・課題）</label>
+                        <label>ネクストステップ（さらによくできる点・課題） <span class="badge-required">必須</span></label>
                         <input type="text" id="player-initial-improve" class="form-control" placeholder="例: 守備への切り替えの速さ" required>
                     </div>
                     <div id="player-initial-skills-container" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1rem;">
@@ -859,7 +988,7 @@
                         <form id="form-player-1on1" style="background:rgba(0,0,0,0.02); border:1px solid var(--surface-border); padding:0.8rem; border-radius:8px; display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1rem;">
                             <input type="hidden" id="1on1-player-id">
                             <div style="display:flex; gap:0.5rem; align-items:center;">
-                                <label style="font-size:0.8rem; font-weight:bold; margin:0; white-space:nowrap;">面談日:</label>
+                                <label style="font-size:0.8rem; font-weight:bold; margin:0; white-space:nowrap;">面談日 <span class="badge-required">必須</span>:</label>
                                 <input type="date" id="player-1on1-date" class="form-control" style="font-size:0.8rem; padding:0.25rem 0.5rem; height:auto; width:130px;" required>
                                 <strong style="font-size:0.85rem; color:var(--primary); margin-left:auto;"><i class="fa-solid fa-comment-medical"></i> 面談メモを追加</strong>
                             </div>
@@ -882,19 +1011,20 @@
     <!-- Player Assessment Form Modal -->
     <div id="modal-player-assessment" class="modal-overlay hidden" style="z-index: 1001;">
         <div class="modal">
-            <h2 style="margin-bottom:1.5rem;">新しいスキル評価を記録</h2>
+            <h2 id="assessment-modal-title" style="margin-bottom:1.5rem;">新しいスキル評価を記録</h2>
             <form id="form-player-assessment">
                 <input type="hidden" id="assessment-player-id">
+                <input type="hidden" id="assessment-edit-id">
                 <div class="form-group">
-                    <label>日付</label>
+                    <label>日付 <span class="badge-required">必須</span></label>
                     <input type="date" id="assessment-date" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label>ポジティブ（良かった点・強み）</label>
+                    <label>ポジティブ（良かった点・強み） <span class="badge-required">必須</span></label>
                     <input type="text" id="assessment-good" class="form-control" placeholder="例: ドリブルの突破力が上がった" required>
                 </div>
                 <div class="form-group">
-                    <label>ネクストステップ（さらによくできる点・課題）</label>
+                    <label>ネクストステップ（さらによくできる点・課題） <span class="badge-required">必須</span></label>
                     <input type="text" id="assessment-improve" class="form-control" placeholder="例: 守備への切り替えの速さ" required>
                 </div>
                 <div id="assessment-skills-container" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1rem;">
@@ -914,6 +1044,7 @@
             <h2 style="margin-bottom:1.5rem;">文字を入力</h2>
             <form id="form-text-input">
                 <div class="form-group">
+                    <label>表示テキスト <span class="badge-required">必須</span></label>
                     <input type="text" id="canvas-text-value" class="form-control" placeholder="例: 10m" required autocomplete="off">
                 </div>
                 <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:2rem;">
@@ -950,11 +1081,11 @@
             <form id="form-custom-formation">
                 <div class="form-group" style="display:flex; gap:1rem; margin-bottom:1rem;">
                     <div style="flex:2;">
-                        <label>フォーメーション名 (例: 3-3-1, 2-4-1)</label>
+                        <label>フォーメーション名 <span class="badge-required">必須</span></label>
                         <input type="text" id="custom-formation-name" class="form-control" placeholder="例: 3-3-1" required>
                     </div>
                     <div style="flex:1;">
-                        <label>選手人数</label>
+                        <label>選手人数 <span class="badge-optional">任意</span></label>
                         <select id="custom-formation-player-count" class="form-control">
                             <option value="8">8人制</option>
                             <option value="11">11人制</option>
