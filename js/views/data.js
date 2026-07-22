@@ -1,7 +1,7 @@
 // Data Export / Import View Module
 
-import { state, loadData, _showExportFallbackModal } from '../state.js';
-import { showToast } from '../ui.js';
+import { state, loadData } from '../state.js';
+import { showToast, _showExportFallbackModal } from '../ui.js';
 
 export function initData() {
     const handleExport = () => {
