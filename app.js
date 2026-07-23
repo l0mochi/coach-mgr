@@ -315,10 +315,33 @@ function syncPullGasCloud(isSilent = false) {
             if (remoteData && (remoteData.matches || remoteData.players || remoteData.practices)) {
                 const currentGasUrl = state.teamInfo.gasApiUrl;
                 const currentGasSheetName = state.teamInfo.gasSheetName;
-                localStorage.setItem('coachMgrData', JSON.stringify(remoteData));
+                const currentGasAuthToken = state.teamInfo.gasAuthToken;
+                
+                // Save encrypted to match localStorage save format
+                const jsonStr = typeof remoteData === 'string' ? remoteData : JSON.stringify(remoteData);
+                localStorage.setItem('coachMgrData', 'enc:' + encryptData(jsonStr));
+                
                 loadData();
+                
                 if (currentGasUrl) state.teamInfo.gasApiUrl = currentGasUrl;
                 if (currentGasSheetName) state.teamInfo.gasSheetName = currentGasSheetName;
+                if (currentGasAuthToken) state.teamInfo.gasAuthToken = currentGasAuthToken;
+                
+                // Save state again to retain local credentials securely
+                const updatedStr = JSON.stringify({
+                    matches: state.matches,
+                    practices: state.practices,
+                    players: state.players,
+                    menuLibrary: state.menuLibrary,
+                    matchTypes: state.matchTypes,
+                    menuCategories: state.menuCategories,
+                    skillMetrics: state.skillMetrics,
+                    positions: state.positions,
+                    positionsCat2: state.positionsCat2,
+                    teamInfo: state.teamInfo,
+                    customFormations: state.customFormations
+                });
+                localStorage.setItem('coachMgrData', 'enc:' + encryptData(updatedStr));
 
                 document.documentElement.style.setProperty('--primary', state.teamInfo.color);
                 const sidebarTitle = document.querySelector('.sidebar-header h2');
