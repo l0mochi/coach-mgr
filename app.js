@@ -618,7 +618,7 @@ function updateRoleUI() {
         };
     }
 
-    // Toggle sidebar library and settings link visibility for parent role
+    // Toggle sidebar library, data management, and settings link visibility for parent role
     const settingsLink = document.querySelector('.nav-links li[data-route="settings"]');
     if (settingsLink) {
         settingsLink.style.display = isCoach ? 'flex' : 'none';
@@ -629,7 +629,12 @@ function updateRoleUI() {
         libraryLink.style.display = isCoach ? 'flex' : 'none';
     }
 
-    if (!isCoach && (state.currentRoute === 'settings' || state.currentRoute === 'library')) {
+    const dataLink = document.querySelector('.nav-links li[data-route="data"]');
+    if (dataLink) {
+        dataLink.style.display = isCoach ? 'flex' : 'none';
+    }
+
+    if (!isCoach && (state.currentRoute === 'settings' || state.currentRoute === 'library' || state.currentRoute === 'data')) {
         navigate('dashboard');
     }
 
