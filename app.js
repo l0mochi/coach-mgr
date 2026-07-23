@@ -827,10 +827,16 @@ function setupModals() {
         const sourceId = document.getElementById('menu-library-source-id').value;
         
         let frames = null;
+        let pitchTemplate = 'full';
         if(sourceId) {
             const src = state.menuLibrary.find(m => m.id === parseInt(sourceId));
-            if(src && src.frames) {
-                frames = JSON.parse(JSON.stringify(src.frames)); // deep copy frames
+            if(src) {
+                if (src.frames) {
+                    frames = JSON.parse(JSON.stringify(src.frames)); // deep copy frames
+                }
+                if (src.pitchTemplate) {
+                    pitchTemplate = src.pitchTemplate;
+                }
             }
         }
 
@@ -845,7 +851,8 @@ function setupModals() {
             options: document.getElementById('menu-options').value,
             category: document.getElementById('menu-category').value,
             videoUrl: videoUrlVal,
-            frames: frames
+            frames: frames,
+            pitchTemplate: pitchTemplate
         };
         
         const editId = document.getElementById('menu-edit-id') ? document.getElementById('menu-edit-id').value : '';
@@ -866,6 +873,10 @@ function setupModals() {
                 targetMenu.options = newMenuObj.options;
                 targetMenu.category = newMenuObj.category;
                 targetMenu.videoUrl = newMenuObj.videoUrl;
+                if (sourceId) {
+                    targetMenu.frames = frames;
+                    targetMenu.pitchTemplate = pitchTemplate;
+                }
                 saveData();
                 showToast('メニューを更新しました');
                 document.getElementById('modal-menu').classList.add('hidden');
@@ -3480,8 +3491,12 @@ function openAssignPracticeModal(menuId) {
                 
                 if (practice && libMenu) {
                     let frames = null;
+                    let pitchTemplate = 'full';
                     if (libMenu.frames) {
                         frames = JSON.parse(JSON.stringify(libMenu.frames)); // Deep copy
+                    }
+                    if (libMenu.pitchTemplate) {
+                        pitchTemplate = libMenu.pitchTemplate;
                     }
                     
                     const newMenuObj = {
@@ -3491,7 +3506,9 @@ function openAssignPracticeModal(menuId) {
                         keyfactor: libMenu.keyfactor,
                         options: libMenu.options,
                         category: libMenu.category || 'その他',
-                        frames: frames
+                        videoUrl: libMenu.videoUrl || '',
+                        frames: frames,
+                        pitchTemplate: pitchTemplate
                     };
                     
                     practice.menus.push(newMenuObj);
