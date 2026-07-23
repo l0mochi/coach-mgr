@@ -382,27 +382,47 @@ function showToast(message) {
 
 // Routing & Navigation
 function setupEventListeners() {
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    const closeSidebar = () => {
+        if (sidebar) sidebar.classList.remove('open');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('open');
+    };
+
+    const toggleSidebar = () => {
+        if (sidebar) {
+            const isOpen = sidebar.classList.toggle('open');
+            if (sidebarOverlay) {
+                sidebarOverlay.classList.toggle('open', isOpen);
+            }
+        }
+    };
+
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             const route = e.currentTarget.dataset.route;
             navigate(route);
-            if (window.innerWidth <= 768) {
-                sidebar.classList.remove('open');
-            }
+            closeSidebar();
         });
     });
 
-    menuToggle.addEventListener('click', () => {
-        sidebar.classList.toggle('open');
-    });
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            toggleSidebar();
+        });
+    }
+
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', () => {
+            closeSidebar();
+        });
+    }
 
     const teamBrand = document.getElementById('sidebar-team-brand');
     if (teamBrand) {
         teamBrand.addEventListener('click', () => {
             navigate('dashboard');
-            if (window.innerWidth <= 768) {
-                sidebar.classList.remove('open');
-            }
+            closeSidebar();
         });
     }
 
@@ -556,11 +576,11 @@ function navigate(route, params = null) {
         }
     });
 
-    // Auto-close sidebar on mobile
+    // Auto-close sidebar & overlay
     const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-        sidebar.classList.remove('open');
-    }
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    if (sidebar) sidebar.classList.remove('open');
+    if (sidebarOverlay) sidebarOverlay.classList.remove('open');
 
     const template = document.getElementById(`tpl-${route}`);
     if (template) {
