@@ -307,41 +307,42 @@ function syncPullGasCloud(isSilent = false) {
     .then(resData => {
         if (resData && resData.status === 'success' && resData.data) {
             let remoteData = resData.data;
-            if (typeof remoteData === 'string') {
-                try { remoteData = JSON.parse(remoteData); } catch(e) {}
+            
+            // Handle multiple levels of stringification if present
+            for (let i = 0; i < 3; i++) {
+                if (typeof remoteData === 'string') {
+                    try { remoteData = JSON.parse(remoteData); } catch(e) { break; }
+                }
             }
             
             // Validate data integrity
-            if (remoteData && (remoteData.matches || remoteData.players || remoteData.practices)) {
+            if (remoteData && (typeof remoteData === 'object')) {
                 const currentGasUrl = state.teamInfo.gasApiUrl;
                 const currentGasSheetName = state.teamInfo.gasSheetName;
                 const currentGasAuthToken = state.teamInfo.gasAuthToken;
                 
-                // Save encrypted to match localStorage save format
-                const jsonStr = typeof remoteData === 'string' ? remoteData : JSON.stringify(remoteData);
-                localStorage.setItem('coachMgrData', 'enc:' + encryptData(jsonStr));
-                
-                loadData();
+                // Direct state assignment from remote data
+                state.matches = remoteData.matches || [];
+                state.practices = remoteData.practices || [];
+                state.players = remoteData.players || [];
+                state.menuLibrary = remoteData.menuLibrary || [];
+                state.matchTypes = remoteData.matchTypes || state.matchTypes;
+                state.menuCategories = remoteData.menuCategories || state.menuCategories;
+                state.skillMetrics = remoteData.skillMetrics || state.skillMetrics;
+                state.positions = remoteData.positions || state.positions;
+                state.positionsCat2 = remoteData.positionsCat2 || state.positionsCat2;
+                if (remoteData.teamInfo) {
+                    state.teamInfo = remoteData.teamInfo;
+                }
+                if (remoteData.customFormations) {
+                    state.customFormations = remoteData.customFormations;
+                }
                 
                 if (currentGasUrl) state.teamInfo.gasApiUrl = currentGasUrl;
                 if (currentGasSheetName) state.teamInfo.gasSheetName = currentGasSheetName;
                 if (currentGasAuthToken) state.teamInfo.gasAuthToken = currentGasAuthToken;
                 
-                // Save state again to retain local credentials securely
-                const updatedStr = JSON.stringify({
-                    matches: state.matches,
-                    practices: state.practices,
-                    players: state.players,
-                    menuLibrary: state.menuLibrary,
-                    matchTypes: state.matchTypes,
-                    menuCategories: state.menuCategories,
-                    skillMetrics: state.skillMetrics,
-                    positions: state.positions,
-                    positionsCat2: state.positionsCat2,
-                    teamInfo: state.teamInfo,
-                    customFormations: state.customFormations
-                });
-                localStorage.setItem('coachMgrData', 'enc:' + encryptData(updatedStr));
+                saveData();
 
                 document.documentElement.style.setProperty('--primary', state.teamInfo.color);
                 const sidebarTitle = document.querySelector('.sidebar-header h2');
