@@ -224,8 +224,8 @@ function saveData() {
     // Store encrypted
     localStorage.setItem('coachMgrData', 'enc:' + encryptData(jsonStr));
 
-    // Auto sync to cloud if GAS API URL is configured (silent background push)
-    if (state.teamInfo && state.teamInfo.gasApiUrl) {
+    // Auto sync to cloud ONLY if in coach mode and URL is configured (prevents background push on parent/view mode)
+    if (state.currentUserRole === 'coach' && state.teamInfo && state.teamInfo.gasApiUrl) {
         syncPushGasCloud(true);
     }
 }
@@ -420,7 +420,6 @@ function init() {
             state.teamInfo.gasApiUrl = paramApiUrl;
             if (paramAuthToken) state.teamInfo.gasAuthToken = paramAuthToken;
             if (paramSheetName) state.teamInfo.gasSheetName = paramSheetName;
-            saveData();
             isFromInviteLink = true;
 
             // Clear URL query parameters from browser bar for security/cleanliness
