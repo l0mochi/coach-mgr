@@ -645,12 +645,12 @@ function updateRoleUI() {
     // ★ 追加：ボトムナビの表示切替（左ペインと完全同期）
     const bottomLibraryLink = document.querySelector('.bottom-nav .nav-item[data-route="library"]');
     if (bottomLibraryLink) {
-        bottomLibraryLink.style.display = isCoach ? 'flex' : 'none';
+        bottomLibraryLink.style.setProperty('display', isCoach ? 'flex' : 'none', 'important');
     }
 
     const bottomSettingsLink = document.querySelector('.bottom-nav .nav-item[data-route="settings"]');
     if (bottomSettingsLink) {
-        bottomSettingsLink.style.display = isCoach ? 'flex' : 'none';
+        bottomSettingsLink.style.setProperty('display', isCoach ? 'flex' : 'none', 'important');
     }
 
 
@@ -730,6 +730,7 @@ function navigate(route, params = null) {
         if (route === 'settings') initSettings();
         if (route === 'animation') initAnimation(params);
     }
+    updateRoleUI();
 }
 
 function initData() {

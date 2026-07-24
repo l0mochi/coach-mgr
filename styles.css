@@ -2896,16 +2896,95 @@ body.drawing-mode .main-content {
 }
 
 /* =========================================================
-   スマホ（768px以下）レイアウト崩れ・被り完全補正
+   スマホ・タブレット共通（1024px以下）レイアウト＆ボトムナビ完全補正
    ========================================================= */
-@media (max-width: 768px) {
+@media screen and (max-width: 1024px) {
 
-    /* 1. ボトムナビゲーションにコンテンツが被るのを防ぐ底面余白 */
-    .view-container {
-        padding-bottom: 90px !important;
+    /* 1. ハンバーガーボタンを非表示 */
+    .menu-toggle {
+        display: none !important;
     }
 
-    /* 2. 選手管理トップのサマリーカードを3列横並びに固定 */
+    /* 2. 縦向き（Portrait）：画面下に固定ボトムナビ */
+    @media (orientation: portrait) {
+        .bottom-nav {
+            display: flex !important;
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 56px !important;
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(12px) !important;
+            border-top: 1px solid var(--surface-border) !important;
+            justify-content: space-around !important;
+            align-items: center !important;
+            z-index: 900 !important;
+            padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+        }
+
+        /* 下部ナビの分だけコンテンツ底面に余白を空ける */
+        .view-container {
+            padding-bottom: 80px !important;
+        }
+    }
+
+    /* 3. 横向き（Landscape）：画面左にスリムなレフトレール */
+    @media (orientation: landscape) {
+        .bottom-nav {
+            display: flex !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 52px !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(12px) !important;
+            border-right: 1px solid var(--surface-border) !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            gap: 0.8rem !important;
+            z-index: 900 !important;
+        }
+
+        .main-content {
+            margin-left: 52px !important;
+        }
+
+        .view-container {
+            padding-bottom: 1rem !important;
+        }
+    }
+
+    /* ボトムナビ要素の基本スタイル */
+    .bottom-nav .nav-item {
+        display: flex;
+        /* ★ !important を削除して JS からの none 制御を許可する */
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 0.65rem !important;
+        color: var(--text-secondary) !important;
+        text-decoration: none !important;
+        gap: 2px !important;
+        padding: 4px 8px !important;
+        border-radius: 8px !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .bottom-nav .nav-item i {
+        font-size: 1.1rem !important;
+    }
+
+    .bottom-nav .nav-item.active {
+        color: var(--primary) !important;
+        font-weight: 700 !important;
+        background: rgba(242, 57, 50, 0.08) !important;
+    }
+
+    /* 4. 選手管理サマリーカードを3列固定 */
     #player-summary-cards {
         grid-template-columns: repeat(3, 1fr) !important;
         gap: 0.4rem !important;
@@ -2947,18 +3026,7 @@ body.drawing-mode .main-content {
         justify-content: center !important;
     }
 
-    /* 3. CSV登録・選手追加ボタンのコンパクト化 */
-    .header-actions {
-        margin-bottom: 1rem !important;
-        gap: 0.4rem !important;
-    }
-
-    .header-actions .btn {
-        padding: 0.4rem 0.65rem !important;
-        font-size: 0.72rem !important;
-    }
-
-    /* 4. ヘッダー（TopBar）右側ボタン群の縦伸び・はみ出し防止 */
+    /* ヘッダー右側ボタン群の縦伸び防止 */
     .topbar {
         padding: 0 0.5rem !important;
         height: 48px !important;
@@ -2990,4 +3058,20 @@ body.drawing-mode .main-content {
         height: 28px !important;
         flex-shrink: 0 !important;
     }
+}
+
+/* 5. 作図画面（Animation）が開いている時はボトムナビを隠す */
+body:has(.anim-app-container) .bottom-nav,
+body.drawing-mode .bottom-nav {
+    display: none !important;
+}
+
+body:has(.anim-app-container) .main-content,
+body.drawing-mode .main-content {
+    margin-left: 0 !important;
+}
+
+/* JSで display: none が指定された場合は強制非表示 */
+.bottom-nav .nav-item[style*="display: none"] {
+    display: none !important;
 }
