@@ -644,6 +644,15 @@ function updateRoleUI() {
         dataLink.style.display = isCoach ? 'flex' : 'none';
     }
 
+    const bottomLibraryLink = document.querySelector('.bottom-nav .nav-item[data-route="library"]');
+    if (bottomLibraryLink) {
+        bottomLibraryLink.style.display = isCoach ? 'flex' : 'none';
+    }
+
+    if (!isCoach && (state.currentRoute === 'settings' || state.currentRoute === 'library' || state.currentRoute === 'data')) {
+        navigate('dashboard');
+    }
+
     if (!isCoach && (state.currentRoute === 'settings' || state.currentRoute === 'library' || state.currentRoute === 'data')) {
         navigate('dashboard');
     }
