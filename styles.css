@@ -2540,55 +2540,44 @@ body.drawing-mode .view-container {
         transform: translateX(0) !important;
     }
 
-    /* 1. 再生バー本体を画面幅いっぱいにフィット */
+    /* 1. 再生バー本体の幅と高さを固定してコンパクト化 */
     .anim-player-bar {
-        bottom: 8px !important;
+        bottom: 6px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
-        width: 98% !important;
-        /* 左右ギリギリまで使用 */
-        max-width: 100% !important;
-        height: 38px !important;
-        padding: 0 4px !important;
-        gap: 0.15rem !important;
-        /* 隙間を極限まで詰める */
-        justify-content: space-around !important;
+        width: auto !important;
+        max-width: 90% !important;
+        height: 34px !important;
+        padding: 0 8px !important;
+        gap: 0.3rem !important;
+        justify-content: center !important;
     }
 
-    /* 2. 不要な区切り線を非表示 */
+    /* 2. 不要な余白や縦線の非表示 */
     .player-bar-divider {
         display: none !important;
     }
 
-    /* 3. ボタンのコンパクト化とテキスト調整 */
+    /* 3. 各ボタンのサイズ・文字の最適化 */
     .anim-player-bar .btn-xs {
-        height: 28px !important;
-        padding: 0 0.3rem !important;
-        font-size: 0.65rem !important;
-        gap: 0.1rem !important;
-        min-width: auto !important;
+        height: 26px !important;
+        padding: 0 0.4rem !important;
+        font-size: 0.7rem !important;
+        gap: 0.15rem !important;
     }
 
-    /* スマホ時はボタンの「文字」を隠してアイコンだけにし、大幅省スペース化 */
-    .anim-player-bar #anim-play,
-    .anim-player-bar #anim-stop,
-    .anim-player-bar #anim-prev-frame,
-    .anim-player-bar #anim-next-frame {
-        font-size: 0.75rem !important;
-    }
-
-    /* 4. シーン選択プルダウンの幅を小さく調整 */
+    /* 4. シーン選択プルダウンの幅を固定 */
     .anim-player-bar select#anim-frame-select {
-        height: 28px !important;
-        min-width: 70px !important;
-        max-width: 90px !important;
-        font-size: 0.68rem !important;
-        padding: 0 0.1rem !important;
+        height: 26px !important;
+        min-width: 100px !important;
+        max-width: 130px !important;
+        font-size: 0.72rem !important;
+        padding: 0 0.3rem !important;
     }
 
-    /* 5. グループの隙間を最小化 */
+    /* 5. 各ボタングループの隙間を調整 */
     .player-bar-group {
-        gap: 0.1rem !important;
+        gap: 0.25rem !important;
     }
 
     /* 1. ヘッダー全体の余白と高さ調整 */
