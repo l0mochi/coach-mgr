@@ -3625,7 +3625,7 @@ function initLibrary() {
     // Show count in topbar title
     const topbarTitleEl = document.getElementById('topbar-title');
     if (topbarTitleEl && topbarTitleEl.textContent.includes('メニュー管理')) {
-        topbarTitleEl.innerHTML = `メニュー管理 <span style="font-size:0.75rem; font-weight:500; background:var(--primary); color:#fff; border-radius:9999px; padding:0.1rem 0.55rem; margin-left:0.4rem; vertical-align:middle;">${state.menuLibrary.length}件</span>`;
+        topbarTitleEl.textContent = 'メニュー管理';
     }
 
     const libraryList = document.getElementById('library-list');
